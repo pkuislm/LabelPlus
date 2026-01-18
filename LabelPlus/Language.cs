@@ -103,7 +103,7 @@ namespace LabelPlus
             //读窗口文本
             try
             {
-                XmlNode frmRoot = root.SelectSingleNode("Form[Name='" + frmName + "']/Name");
+                XmlNode frmRoot = root.SelectSingleNode("Form[Name='" + frmName + "']/Text");
                 if(frmRoot==null)
                     MessageBox.Show("11");
                 result.Add(frmName.ToLower(), frmRoot.InnerText);
@@ -204,6 +204,9 @@ namespace LabelPlus
             foreach (Control control in controls)
             {
                 if (control.GetType() == typeof(System.Windows.Forms.Panel))
+                    SetControlNames(control.Controls, table);
+
+                if(control.GetType() == typeof(System.Windows.Forms.FlowLayoutPanel))
                     SetControlNames(control.Controls, table);
 
                 if (control.GetType() == typeof(System.Windows.Forms.GroupBox))

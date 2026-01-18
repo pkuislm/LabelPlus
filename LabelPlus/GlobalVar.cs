@@ -32,17 +32,14 @@ namespace LabelPlus
 
         public static string DefaultComment;
 
+        public static string FontName;
+        public static float FontSize;
+
         public static void Reload() {
  
             /* 读配置文件 */
-
-            FileInfo fi = new FileInfo(@"labelplus_config.xml");
-            Console.Write(fi.FullName);
-            if (!fi.Exists)
-                throw new Exception("Not found config file.");
-            XmlReader reader = new XmlTextReader(fi.FullName);
             XmlDocument doc = new XmlDocument();
-            doc.Load(reader);
+            doc.Load(@"labelplus_config.xml");
 
             /* QuickText */
             XmlNodeList QuickText = doc.SelectNodes("AppConfig/QuickText/Item");
@@ -97,7 +94,30 @@ namespace LabelPlus
             //DefaultComment
             DefaultComment = doc.SelectSingleNode("AppConfig/DefaultComment").InnerText;
             DefaultComment = DefaultComment.Replace(@"\n", "\r\n");
+
+            FontName = doc.SelectSingleNode("AppConfig/Font/Name").InnerText;
+            FontSize = Convert.ToSingle(doc.SelectSingleNode("AppConfig/Font/Size").InnerText);
         }
 
+        public static void Save()
+        {
+            /*  写配置文件  */
+            XmlDocument doc = new XmlDocument();
+            doc.Load(@"labelplus_config.xml");
+
+            doc.SelectSingleNode("AppConfig/Font/Name").InnerText = FontName;
+            doc.SelectSingleNode("AppConfig/Font/Size").InnerText = FontSize.ToString();
+
+            using (XmlWriter wr = XmlWriter.Create(
+                @"labelplus_config.xml",
+                new XmlWriterSettings
+                {
+                    Encoding = Encoding.UTF8,
+                    Indent = true
+                }))
+            {
+                doc.Save(wr);
+            }
+        }
     }
 }

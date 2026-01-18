@@ -39,7 +39,7 @@ namespace LabelPlus
             toUndoDeque.AddTail(LabelCommand);
         }
 
-        public void Undo()
+        public new void Undo()
         {
             if (toUndoDeque.Count == 0)
             {
@@ -51,7 +51,7 @@ namespace LabelPlus
             toRedoStack.Push(LabelCommand);
         }
 
-        public void Redo()
+        public new void Redo()
         {
             if (toRedoStack.Count == 0)
             {
@@ -62,7 +62,7 @@ namespace LabelPlus
             LabelCommand.Excute();
             toUndoDeque.AddTail(LabelCommand);
         }
-        public void Clear()
+        public new void Clear()
         {
             toRedoStack.Clear();
             toUndoDeque.Clear();

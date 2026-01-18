@@ -44,6 +44,7 @@
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.PicView_MouseMove);
             this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.PicView_MouseUp);
             this.Resize += new System.EventHandler(this.PicView_Resize);
+            this.BackColor = System.Drawing.Color.Gray;
             this.ResumeLayout(false);
 
         }

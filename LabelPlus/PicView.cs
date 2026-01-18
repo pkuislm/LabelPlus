@@ -10,10 +10,9 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Windows.Forms;
-using System.Threading;
-using System.Reflection;
+using System.Drawing.Drawing2D;
 using System.Linq;
+using System.Windows.Forms;
 #endregion
 
 namespace LabelPlus
@@ -28,7 +27,8 @@ namespace LabelPlus
             public enum ActionType
             {
                 leftClick,
-                rightClick,
+                rightClickAdd,
+                rightClickDel,
                 mouseIndexChanged,
                 labelChanged
             }
@@ -50,15 +50,13 @@ namespace LabelPlus
 
 
         //拖拽
-        bool dragStart = false;
-        LabelItem dragLabel = null;
-        LabelUndo dragLabelPrevious = new LabelUndo();
+        LabelItem _draggingLabelItem = null;
+        LabelUndo _draggingLabelUndoStart = new LabelUndo();
 
         public delegate void UserActionEventHandler(object sender, LabelUserActionEventArgs e);
         /*Label相关*/
         private Color[] colorList;
-        private bool hideLabel = false;
-        private bool showGroup = false;
+        private bool _hideLabel = false;
         private bool alwaysShowGroup;
         public bool AlwaysShowGroup
         {
@@ -66,7 +64,7 @@ namespace LabelPlus
             set
             {
                 alwaysShowGroup = value;
-                MakeImageNow();
+                Invalidate();
             }
         }
         public UserActionEventHandler LabelUserAction;
@@ -79,77 +77,26 @@ namespace LabelPlus
         }
 
         /*图像相关*/
-        Image imageOriginal;
-        Image imageZoomed;
-        float imageZoomedZoomValue;
-        Image image;
-        Rectangle clientRect;
-        float zoom = 0;
-        PointF startP;
+        Image _sourceImage;
+        float _zoom = 0;
+        PointF _viewOffset;
 
-        PointF StartP
-        {
-            get
-            {
-                if (startP == null) startP = new PointF(0, 0);
-                return startP;
-            }
-            set
-            {
-                try
-                {
-                    if (value.X < 0)
-                        startP.X = 0;
-                    else if ((clientRect.Width < image.Size.Width) && (value.X * zoom > image.Size.Width - clientRect.Width))
-                        startP.X = (image.Size.Width - clientRect.Width) / zoom;
-                    else if (clientRect.Width >= image.Size.Width)
-                        startP.X = 0;
-                    else
-                        startP.X = value.X;
-
-                    if (value.Y < 0)
-                        startP.Y = 0;
-                    else if ((clientRect.Height < image.Size.Height) && (value.Y * zoom > image.Size.Height - clientRect.Height))
-                        startP.Y = (image.Size.Height - clientRect.Height) / zoom;
-                    else if (clientRect.Height >= image.Size.Height)
-                        startP.Y = 0;
-                    else
-                        startP.Y = value.Y;
-                }
-                catch { }
-            }
-        }
         public Image Image
         {
             set
             {
-                if (imageOriginal != null)
+                if (_sourceImage != null)
                 {
-                    imageOriginal.Dispose();
-                    imageOriginal = value;
+                    _sourceImage.Dispose();
+                    _sourceImage = value;
                 }
                 else
                 {
-                    imageOriginal = value;
+                    _sourceImage = value;
                     if (value != null)
-                        Zoom = (float)(this.ClientSize.Width) / imageOriginal.Width;//首次运行 设定缩放值
+                        Zoom = (float)(this.ClientSize.Width) / _sourceImage.Width;//首次运行 设定缩放值
                 }
-
-                StartP = new PointF(0, 0);
-
-                //清除缓存
-                if (imageZoomed != null)
-                {
-                    imageZoomed.Dispose();
-                    imageZoomed = null;
-                }
-                if (image != null)
-                {
-                    image.Dispose();
-                    image = null;
-                }
-                MakeImageNow();
-                Refresh();
+                Invalidate();
             }
         }
 
@@ -159,11 +106,11 @@ namespace LabelPlus
         public PointF ClientToPercentPoint(PointF poi)
         {
             float x, y;
-            float startX = startP.X * zoom;
-            float startY = startP.Y * zoom;
+            float startX = _viewOffset.X * _zoom;
+            float startY = _viewOffset.Y * _zoom;
 
-            x = (startX + poi.X) / zoom / imageOriginal.Size.Width;
-            y = (startY + poi.Y) / zoom / imageOriginal.Size.Height;
+            x = (startX + poi.X) / _zoom / _sourceImage.Size.Width;
+            y = (startY + poi.Y) / _zoom / _sourceImage.Size.Height;
 
             return new PointF(x, y);
         }
@@ -173,48 +120,31 @@ namespace LabelPlus
         {
             set
             {
-                var beforeValue = zoom;
+                float newZoom = Math.Max(0.05f, Math.Min(2.0f, value));
+                if (Math.Abs(newZoom - _zoom) < 0.0001f)
+                    return;
+                _zoom = newZoom;
 
-                if (value < 0.05) zoom = 0.05f;
-                else if (value > 1.0) zoom = 1.0f;
-                else zoom = value;
-
-                MakeImageNow();
-
+                Invalidate();
                 OnZoomChanged();
-
             }
             get
             {
-                return zoom;
+                return _zoom;
             }
         }
 
-        /**
-         * LabelSideLength函数用途：根据图片的大小，确定标签的大小
-         * getLabelRectangle函数用途：取得一个表示标签位置、大小的矩形
-         */
-        public float LabelSideLength() { return LabelSideLength(image); }
-        public float LabelSideLength(Image image)
-        {
-            return (float)(Math.Min(image.Width, image.Height) * 0.03);
-        }
-        RectangleF getLabelRectangle(float x, float y)
-        {
-            return getLabelRectangle(x, y, image);
-        }
-        RectangleF getLabelRectangle(float x, float y, Image image)
-        {
-            if (image == null) return new RectangleF();
-            RectangleF rect = new RectangleF();
-            rect.Width = 1.4f * LabelSideLength(image);
-            rect.Height = LabelSideLength(image);
-            rect.X = x * image.Width - rect.Width / 2;
-            rect.Y = y * image.Height - rect.Height / 2;
-            return rect;
 
-            //原来的：
-            //return new RectangleF(x * image.Width, y * image.Height, 1.4f * LabelSideLength(image), LabelSideLength(image));
+        public float LabelSize()
+        {
+           return LabelSize(_zoom);
+        }
+
+        public static float LabelSize(float zoom)
+        {
+            //标签大小
+            //return (float)(Math.Min(image.Width, image.Height) * 0.03);
+            return 38.0f / zoom;
         }
 
         public PicView()
@@ -233,14 +163,15 @@ namespace LabelPlus
             this.KeyDown += new KeyEventHandler(PicView_label_KeyDown);
             this.KeyUp += new KeyEventHandler(PicView_Label_KeyUp);
 
-
+            this.DoubleBuffered = true;
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            
             //提示标签
             toolTip.UseFading = false;
             toolTip.UseAnimation = false;
             toolTip.BackColor = Color.Black;
             toolTip.ForeColor = Color.White;
 
-            EnableMakeImage = true;
             AlwaysShowGroup = false;
         }
 
@@ -264,148 +195,118 @@ namespace LabelPlus
             catch { return false; }
         }
 
-        public void MakeImageNow() { MakeImage(ref image, ref imageOriginal); }
-
         public bool EnableMakeImage { get; set; }
 
-        public bool MakeImage(ref Image image, ref Image imageOriginal, float zoom = 0, List<LabelItem> labels = null)
+        // 获取当前的视图变换矩阵
+        private Matrix GetViewMatrix()
         {
-            try
-            {
-                if (zoom == 0) zoom = this.Zoom;
-                if (labels == null) labels = this.labels;
-
-                //若无东西 就清空image
-                if (imageOriginal == null)
-                {
-                    if (image != null)
-                    {
-                        image.Dispose();
-                        image = null;
-                    }
-                    return false;
-                }
-
-                //图像来自外部 清除内部缓存
-                if (imageOriginal != this.imageOriginal)
-                {
-                    if (imageZoomed != null)
-                    {
-                        imageZoomed.Dispose();
-                        imageZoomed = null;
-                    }
-                }
-
-                //判断有没有必要生成
-                if (imageZoomed != null && Math.Abs(this.Zoom - zoom) < 0.001f && !EnableMakeImage)
-                    return false;
-
-                //缩图
-                if ((imageZoomed == null) ||
-                    !(Math.Abs(imageZoomedZoomValue - zoom) < 0.001))
-                {
-                    imageZoomedZoomValue = zoom;
-
-                    if (imageZoomed != null)
-                        imageZoomed.Dispose();
-
-                    imageZoomed = new Bitmap(imageOriginal, (int)(imageOriginal.Size.Width * zoom), (int)(imageOriginal.Size.Height * zoom));
-                }
-
-                //释放缓存
-                if (image != null)
-                    image.Dispose();
-
-                //贴上标签
-                image = new Bitmap(imageZoomed);
-                Graphics tmp = Graphics.FromImage(image);
-                if (!hideLabel && labels != null)
-                {
-                    float labelFontSize = LabelSideLength(image) / 1.6f;
-
-                    for (int i = 0; i < labels.Count; i++)
-                    {
-                        RectangleF rect = getLabelRectangle(labels[i].X_percent, labels[i].Y_percent, image);
-                        Font myFont = new System.Drawing.Font(new FontFamily("Arial"), labelFontSize, FontStyle.Bold);
-
-                        Brush myBrushRed = new SolidBrush(colorList[labels[i].Category - 1]);
-                        Brush myBrushWhite = new SolidBrush(Color.White);
-                        Pen mySidePen = new Pen(myBrushRed, LabelSideLength(image) / 10f);
-
-                        StringFormat sf = new StringFormat();
-                        sf.Alignment = StringAlignment.Center;
-                        sf.LineAlignment = StringAlignment.Center;
-
-                        //实体字
-                        tmp.DrawString((i + 1).ToString(), myFont, myBrushRed, rect.X + rect.Width / 2, rect.Y + rect.Height / 2, sf);
-
-                        //外框                
-                        //tmp.DrawRectangle(mySidePen, rect.X, rect.Y, rect.Width, rect.Height);
-
-                        //显示Group
-                        if (AlwaysShowGroup || showGroup)
-                        {
-                            Font groupFont = new System.Drawing.Font(new FontFamily("simsun"), labelFontSize / 1.5f, FontStyle.Bold);
-                            float myWidth = labelFontSize * 10;
-                            RectangleF groupRect = new RectangleF(
-                                rect.X + rect.Width / 2 - myWidth / 2,
-                                rect.Y - labelFontSize,
-                                myWidth,
-                                rect.Height);
-
-                            tmp.DrawString(groupString[labels[i].Category - 1], groupFont, myBrushRed, groupRect, sf);
-
-                            groupFont.Dispose();
-                        }
-
-                        myFont.Dispose();
-                        myBrushRed.Dispose();
-                        myBrushWhite.Dispose();
-                        mySidePen.Dispose();
-                        sf.Dispose();
-                    }
-                }
-
-                Refresh();
-                tmp.Dispose();
-                return true;
-            }
-            catch { return false; }
+            Matrix m = new Matrix();
+            // 顺序很重要：先缩放，再平移 (或者先平移到原点，再缩放，再平移回去，这里采用 ViewOffset 直接记录屏幕偏移)
+            m.Translate(_viewOffset.X, _viewOffset.Y);
+            m.Scale(_zoom, _zoom);
+            return m;
         }
-        public new void Refresh()
+
+        // 坐标转换：屏幕坐标 -> 图片像素坐标
+        private PointF ScreenToImage(PointF screenPoint)
         {
-            this.OnPaint(new PaintEventArgs(this.CreateGraphics(), this.ClientRectangle));
+            // Inverse Matrix calculation manually for performance
+            // ImgX = (ScreenX - OffsetX) / Zoom
+            return new PointF(
+                (screenPoint.X - _viewOffset.X) / _zoom,
+                (screenPoint.Y - _viewOffset.Y) / _zoom
+            );
+        }
+
+        // 坐标转换：图片像素坐标 -> 屏幕(控件)坐标
+        private PointF ImageToScreen(PointF imgPoint)
+        {
+            // 公式：Screen = Image * Zoom + Offset
+            return new PointF(
+                imgPoint.X * _zoom + _viewOffset.X,
+                imgPoint.Y * _zoom + _viewOffset.Y
+            );
         }
 
         private void PicView_Paint(object sender, PaintEventArgs e)
         {
             try
             {
+                e.Graphics.Clear(BackColor);
+
+                if (_sourceImage == null) return;
+
                 Graphics g = e.Graphics;
-                clientRect = e.ClipRectangle;
-                RectangleF imageRect = new RectangleF(startP.X * zoom, startP.Y * zoom, clientRect.Width, clientRect.Height);
 
-                g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighSpeed;
+                using (Matrix transform = GetViewMatrix())
+                {
+                    g.Transform = transform;
+                    g.SmoothingMode = SmoothingMode.HighSpeed;
 
-                //构建缓存
-                Image myBuffer = new Bitmap(clientRect.Width, clientRect.Height);
-                Graphics gBuffer = Graphics.FromImage(myBuffer);
-                gBuffer.Clear(Color.White);
-                if (image != null)
-                    gBuffer.DrawImage(image, clientRect, imageRect, GraphicsUnit.Pixel);
+                    if (_isDraggingImage || _isDraggingLabel)
+                    {
+                        g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                    }
+                    else
+                    {
+                        g.InterpolationMode = _zoom > 1.0f ? InterpolationMode.NearestNeighbor : InterpolationMode.HighQualityBicubic;
+                    }
 
-                //缓存->屏幕
-                g.DrawImage(myBuffer, 0, 0);
+                    g.DrawImage(_sourceImage, 0, 0, _sourceImage.Width, _sourceImage.Height);
 
-                // if(g != null) g.Dispose(); // 屏幕不可删除
-                if (myBuffer != null) myBuffer.Dispose();
-                if (gBuffer != null) gBuffer.Dispose();
+                    if (!_hideLabel && _labels != null)
+                    {
+                        g.SmoothingMode = SmoothingMode.AntiAlias;
+                        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                        DrawLabels(g);
+                    }
+                }
             }
             catch { }
         }
+
+        // 将标签绘制逻辑提取出来
+        private void DrawLabels(Graphics g)
+        {
+            int labelAlpha = 200;
+            float baseLen = LabelSize();
+            float labelFontSize = baseLen / 2.1f;
+
+            using (Font myFont = new Font("Arial", labelFontSize, FontStyle.Bold))
+            using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+            using (Pen whitePen = new Pen(Color.FromArgb(labelAlpha, Color.White), baseLen * 0.1f))
+            {
+                var colorBrushes = colorList.Select(c => new SolidBrush(Color.FromArgb(labelAlpha, c))).ToArray();
+
+                try
+                {
+                    for (int i = 0; i < _labels.Count; i++)
+                    {
+                        var geo = LabelGeometry.CalcLabelGeometry(_labels[i], _sourceImage, _zoom);
+                        var brush = colorBrushes[_labels[i].Category - 1];
+
+                        // 圆
+                        g.DrawEllipse(whitePen, geo.CircleRect);
+                        g.FillEllipse(brush, geo.CircleRect);
+
+                        // 数字
+                        g.DrawString((i + 1).ToString(), myFont, Brushes.White, geo.CircleRect, sf);
+
+                        // 三角
+                        g.FillPolygon(brush, geo.Triangle);
+                    }
+                }
+                finally
+                {
+                    foreach (var brush in colorBrushes)
+                        brush?.Dispose();
+                }
+            }
+        }
+
         private void PicView_Resize(object sender, EventArgs e)
         {
-            Refresh();
+            Invalidate();
         }
         private void PicView_Load(object sender, EventArgs e)
         {
@@ -418,42 +319,97 @@ namespace LabelPlus
         #endregion
 
         #region 拖拽操作
-        bool draging = false;
-        bool alreadyDraged = false;
-        Point draging_mosuestartpoint;
-        PointF draging_beforeStartP;
-        Thread zooming_thread;
+        bool _isDraggingImage = false;
+        Rectangle _lastMouseDownArea;
+        Point _lastMousePos;
+
+        //标签拖拽
+        bool _isDraggingLabel = false;
+        int _draggingLabelIndex = -1;
+        PointF _draggingLabelAnchorOffset;
         void PicView_Draging_MouseDown(object sender, MouseEventArgs e)
         {
-            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            _lastMouseDownArea = new Rectangle(e.Location, new Size(5, 5));
+            if (e.Button == MouseButtons.Left)
             {
-                draging = true;
-                draging_mosuestartpoint = e.Location;
-                draging_beforeStartP = startP;
-                alreadyDraged = false;
+                PointF imgPoint = ScreenToImage(e.Location);
+                int clickedLabelIndex = GetLabelIndexAt(imgPoint);
+
+                if (clickedLabelIndex != -1)
+                {
+                    _isDraggingLabel = true;
+                    _draggingLabelIndex = clickedLabelIndex;
+                    _draggingLabelItem = _labels[clickedLabelIndex];
+
+
+                    // 记录 Undo 起点
+                    _draggingLabelUndoStart = new LabelUndo()
+                    {
+                        Index = clickedLabelIndex,
+                        Location = new Location() { X_percent = _draggingLabelItem.X_percent, Y_percent = _draggingLabelItem.Y_percent },
+                        Category = _draggingLabelItem.Category,
+                        Text = _draggingLabelItem.Text
+                    };
+
+                    var geo = LabelGeometry.CalcLabelGeometry(_draggingLabelItem, _sourceImage, _zoom);
+                    float x_percent = (imgPoint.X - geo.Anchor.X) / _sourceImage.Width;
+                    float y_percent = (imgPoint.Y - geo.Anchor.Y) / _sourceImage.Height;
+                    _draggingLabelAnchorOffset = new PointF(x_percent, y_percent);
+                }
+                else
+                {
+                    _isDraggingImage = true;
+                    _lastMousePos = e.Location;
+                }
             }
         }
 
         void PicView_Draging_MouseUp(object sender, MouseEventArgs e)
         {
-            draging = false;
-            alreadyDraged = false;
+            if (_isDraggingLabel && _draggingLabelItem != null)
+            {
+                PointF imgPoint = ScreenToImage(e.Location);
+                float newXPercent = Clamp(imgPoint.X / _sourceImage.Width - _draggingLabelAnchorOffset.X, 0f, 1f);
+                float newYPercent = Clamp(imgPoint.Y / _sourceImage.Height - _draggingLabelAnchorOffset.Y, 0f, 1f);
+
+                MoveLabelCommand(newXPercent, newYPercent);
+                _isDraggingLabel = false;
+                _draggingLabelIndex = -1;
+            }
+            else
+            {
+                _isDraggingImage = false;
+            }
+            Invalidate();
         }
 
         void PicView_Draging_MouseMove(object sender, MouseEventArgs e)
         {
-            if (draging == false) return;
+            if(_sourceImage==null) return;
 
-            float dx = e.Location.X - draging_mosuestartpoint.X;
-            float dy = e.Location.Y - draging_mosuestartpoint.Y;
-            StartP = new PointF(draging_beforeStartP.X - dx / zoom, draging_beforeStartP.Y - dy / zoom);
-            Refresh();
+            if (_isDraggingLabel && _draggingLabelIndex >= 0)
+            {
+                PointF imgPoint = ScreenToImage(e.Location);
+                float newXPercent = imgPoint.X / _sourceImage.Width - _draggingLabelAnchorOffset.X;
+                float newYPercent = imgPoint.Y / _sourceImage.Height - _draggingLabelAnchorOffset.Y;
 
-            //Console.WriteLine(Math.Abs(dx) +Math.Abs(dy));
+                _draggingLabelItem.X_percent = Clamp(newXPercent, 0f, 1f);
+                _draggingLabelItem.Y_percent = Clamp(newYPercent, 0f, 1f);
 
-            //容忍范围
-            if (Math.Abs(dx) + Math.Abs(dy) >= 5.0f)
-                alreadyDraged = true;
+                Invalidate();
+                return;
+            }
+
+            if (_isDraggingImage == false) return;
+
+            float deltaX = e.X - _lastMousePos.X;
+            float deltaY = e.Y - _lastMousePos.Y;
+
+            _viewOffset.X += deltaX;
+            _viewOffset.Y += deltaY;
+
+            _lastMousePos = e.Location;
+            Invalidate();
 
         }
         #endregion
@@ -461,236 +417,225 @@ namespace LabelPlus
         #region 缩放、平移操作
         void PicView_Zooming_MouseWheel(object sender, MouseEventArgs e)
         {
-            //Alt缩放
+            if (_sourceImage == null) return;
+
+            // 修饰键平移保持不变
+            if (Control.ModifierKeys == Keys.Control)
+            {
+                _viewOffset.X -= e.Delta / _zoom;
+                Invalidate();
+                return;
+            }
             if (Control.ModifierKeys == Keys.Alt)
             {
-                var beforeValue = this.Zoom;
-                if (e.Delta > 0)
-                {
-                    this.Zoom += 0.1f;
-                }
-                else
-                {
-                    this.Zoom -= 0.1f;
-                }
-                if (beforeValue == this.Zoom) return;   //未做改变 不刷新
-
-                //只有进程结束后 才能再执行一次
-                if (zooming_thread == null)
-                {
-                    zooming_thread = new Thread(zooming_drawing);
-                    zooming_thread.Start();
-                }
-            }
-            else
-            {
-                //ctrl纵向平移
-                if (Control.ModifierKeys == Keys.Control)
-                {
-                    StartP = new PointF(startP.X - e.Delta / zoom, startP.Y);
-                    Refresh();
-                }
-                //横向平移
-                else
-                {
-                    StartP = new PointF(startP.X, startP.Y - e.Delta / zoom);
-                    Refresh();
-                }
-                //Console.WriteLine(Math.Abs(dx) +Math.Abs(dy));
-
-
+                _viewOffset.Y -= e.Delta / _zoom;
+                Invalidate();
+                return;
             }
 
-        }
+            float oldZoom = _zoom;
+            float newZoom = _zoom + (e.Delta > 0 ? 0.1f : -0.1f);
+            newZoom = Math.Max(0.05f, Math.Min(3.0f, newZoom));
 
-        delegate void makeImageDelegate();
-        void zooming_drawing()
-        {
-            Thread.Sleep(100);
-            if (this.InvokeRequired)
-            {
-                makeImageDelegate tmp = new makeImageDelegate(zooming_drawing);
-                this.Invoke(tmp);
-                zooming_thread = null;
-            }
-            else
-            {
-                MakeImageNow();
-            }
+            if (Math.Abs(newZoom - oldZoom) < 0.0001f)
+                return;
 
+            _zoom = newZoom;
+
+            float mouseX_rel = e.X - _viewOffset.X;
+            float mouseY_rel = e.Y - _viewOffset.Y;
+
+            // 2. 计算缩放比例变化
+            float ratio = _zoom / oldZoom;
+
+            // 3. 计算新的 ViewOffset
+            _viewOffset.X = e.X - mouseX_rel * ratio;
+            _viewOffset.Y = e.Y - mouseY_rel * ratio;
+
+            Invalidate();
+            OnZoomChanged();
         }
 
         #endregion
 
         #region Label操作
-        List<LabelItem> labels = new List<LabelItem>();
+        struct LabelGeometry
+        {
+            public PointF Anchor;       // 底部锚点（image 坐标）
+            public PointF Top;
+            public PointF CircleCenter; // 圆心（image 坐标）
+            public RectangleF CircleRect;
+            public PointF[] Triangle;   // 三角形三个点（image 坐标）
+
+            public static LabelGeometry CalcLabelGeometry(float x, float y, float zoom)
+            {
+                float baseLen = LabelSize(zoom);
+
+                float r = baseLen * 0.5f;
+                float triH = baseLen * 0.25f;
+                float triW = baseLen * 0.4f;
+                float gap = baseLen * 0.1f;
+
+                float ax = x;
+                float ay = y;
+
+                PointF anchor = new PointF(ax, ay);
+
+                PointF circleCenter = new PointF(
+                    ax,
+                    ay - triH - gap - r
+                );
+
+                RectangleF circleRect = new RectangleF(
+                    circleCenter.X - r,
+                    circleCenter.Y - r,
+                    r * 2,
+                    r * 2
+                );
+
+                PointF[] triangle =
+                {
+                    new PointF(ax, ay),                         // 底点
+                    new PointF(ax - triW / 2, ay - triH),       // 左
+                    new PointF(ax + triW / 2, ay - triH)        // 右
+                };
+
+                return new LabelGeometry
+                {
+                    Anchor = anchor,
+                    CircleCenter = circleCenter,
+                    CircleRect = circleRect,
+                    Triangle = triangle,
+                    Top = new PointF(ax, ay - triH - gap - r * 2)
+                };
+            }
+
+            public static LabelGeometry CalcLabelGeometry(LabelItem label, Image img, float zoom)
+            {
+                return CalcLabelGeometry(label.X_percent * img.Width, label.Y_percent * img.Height, zoom);
+            }
+
+            public static LabelGeometry CalcLabelGeometry(LabelItem label, Image img, float zoom,float offsetX, float offsetY)
+            {
+                return CalcLabelGeometry(label.X_percent * img.Width - offsetX, label.Y_percent * img.Height - offsetY, zoom);
+            }
+
+            public bool HitTest(PointF realP)
+            {
+                float dx = realP.X - CircleCenter.X;
+                float dy = realP.Y - CircleCenter.Y;
+                if (dx * dx + dy * dy <= CircleRect.Width * CircleRect.Width / 4)
+                    return true;
+                return false;
+            }
+        }
+
+        List<LabelItem> _labels = new List<LabelItem>();
         string[] groupString;
         public void ClearLabels()
         {
-            labels = new List<LabelItem>();
+            _labels = new List<LabelItem>();
         }
-
-        ////x,y单位为百分比
-        //public void AddLabel(float x,float y){
-        //    LabelItem tmp = new LabelItem(); 
-        //    tmp.X=x;
-        //    tmp.Y=y;
-        //    labels.Add(tmp);
-        //}
 
         public void SetLabels(List<LabelItem> items, string[] groupString, Color[] colors)
         {
-            this.labels = items;
+            this._labels = items;
             this.colorList = colors;
             this.groupString = groupString;
-            MakeImageNow();
+            Invalidate();
         }
 
         // 使标签可见 Input模式使用
-        public void SetLabelVisual(int index)
+        /// <summary>
+        /// 将指定索引的标签居中显示在视图中
+        /// </summary>
+        /// <param name="index">标签的索引</param>
+        /// <param name="targetZoom">可选：跳转时的缩放比例。如果为null，则保持当前缩放比例</param>
+        public void SetLabelVisual(int index, float? targetZoom = null)
         {
-            if (index < labels.Count)
+            // 1. 基础校验
+            if (_sourceImage == null || _labels == null) return;
+            if (index < 0 || index >= _labels.Count) return;
+
+            var label = _labels[index];
+
+            // 2. 确定缩放比例
+            // 如果传入了新的缩放比例，就更新；否则保持当前比例
+            if (targetZoom.HasValue)
             {
-                float x = labels[index].X_percent * image.Size.Width;
-                float y = labels[index].Y_percent * image.Size.Height;
-                float startX = x - clientRect.Width * GlobalVar.SetLabelVisualRatioX;
-                float startY = y - clientRect.Height * GlobalVar.SetLabelVisualRatioY;
-
-                //startX Y转换到原始尺寸坐标
-                float ratio = (float)image.Size.Width / imageOriginal.Size.Width;
-                startX = startX / ratio;
-                startY = startY / ratio;
-
-                StartP = new PointF(startX, startY);
-                MakeImageNow();
+                _zoom = targetZoom.Value;
+                // 这里可以加上最大/最小缩放限制逻辑，防止缩放过头
+                if (_zoom < 0.1f) _zoom = 0.1f;
+                if (_zoom > 10f) _zoom = 10f;
             }
 
+            // 3. 计算控件中心坐标
+            float screenCenterX = this.Width / 2.0f;
+            float screenCenterY = this.Height / 2.0f;
+
+            // 4. 计算新的偏移量 (核心公式)
+            // NewOffset = ScreenCenter - (ImagePoint * Zoom)
+            float newOffsetX = screenCenterX - (label.X_percent * _sourceImage.Width * _zoom);
+            float newOffsetY = screenCenterY - (label.Y_percent * _sourceImage.Height * _zoom);
+
+            _viewOffset = new PointF(newOffsetX, newOffsetY);
+            Invalidate();
         }
 
-
-
-        int getLabelIndex(int x, int y)
+        private int GetLabelIndexAt(PointF imgPoint)
         {
-            if (labels == null) return -1;
-
-            float realX = startP.X * zoom + x;
-            float realY = startP.Y * zoom + y;
-            PointF realP = new PointF(realX, realY);
-
-            RectangleF[] rectList = new RectangleF[labels.Count];
-            for (int i = 0; i < labels.Count; i++)
+            if (_labels == null) return -1;
+            for (int i = 0; i < _labels.Count; i++)
             {
-                RectangleF tmpRect = getLabelRectangle(labels[i].X_percent, labels[i].Y_percent);
-                if (tmpRect.Contains(realP))
-                    return i;
+                var geo = LabelGeometry.CalcLabelGeometry(_labels[i], _sourceImage, _zoom);
+                if (geo.HitTest(imgPoint)) return i;
             }
             return -1;
         }
 
         void PicView_Label_MouseClick(object sender, MouseEventArgs e)
         {
-            if (image == null) return;
-            if (alreadyDraged == true) return;
+            if (_sourceImage == null) return;
+            if (_isDraggingLabel == true) return;
 
-            int index = getLabelIndex(e.X, e.Y);
-            float x_percent = (startP.X * zoom + e.X) / image.Width;
-            float y_percent = (startP.Y * zoom + e.Y) / image.Height;
-            if (x_percent > 1.0f || y_percent > 1.0f) return;   //忽略超出边界的点击
+            PointF imgPoint = ScreenToImage(e.Location);
+            int clickedLabelIndex = GetLabelIndexAt(imgPoint);
 
-            //var referRect = getLabelRectangle(0, 0); //参考矩形
-            //x_percent = (startP.X * zoom + e.X - referRect.Width / 2) / image.Width;
-            //y_percent = (startP.Y * zoom + e.Y - referRect.Height / 2) / image.Height;
-            //重新计算，为了契合鼠标点击的目标
+            float x_percent = imgPoint.X / _sourceImage.Width;
+            float y_percent = imgPoint.Y / _sourceImage.Height;
+            if (x_percent > 1.0f || y_percent > 1.0f || x_percent < 0 || y_percent < 0) return;   //忽略超出边界的点击
 
             if (e.Button == System.Windows.Forms.MouseButtons.Left)
             {
-                if (dragLabel != null && dragStart == true)
-                {
-                    //移动标签
-                    MoveLabelCommand(x_percent, y_percent);
-                    return;
-                }
-                //MessageBox.Show("i find you");
-                bool flag = false;
-                foreach (LabelItem label in this.labels)
-                {
-
-                    if (Math.Abs(x_percent - label.X_percent) < 0.02 && Math.Abs(y_percent - label.Y_percent) < 0.02)
-                    {
-                        // Console.WriteLine(x_percent + " " + label.X_percent + " " );
-                        //MessageBox.Show("nice");
-                        flag = true;
-                        dragStart = true;
-                        dragLabel = label;
-                        //选取另一个标签时，清空标签池
-                        if (index != dragLabelPrevious.Index && index != -1)
-                        {
-                            UndoRedoManager.labelCommandPool.Clear();
-                        }
-                        var dragUndo = new LabelUndo()
-                        {
-                            Index = index,
-                            Location = new Location() { X_percent = x_percent, Y_percent = y_percent },
-                            Category = label.Category,
-                            Text = label.Text
-                        };
-                        dragLabelPrevious = dragUndo;
-                        //MessageBox.Show("已选中"+dragLabel.Text);
-                        break;
-                    }
-
-                }
-
-                if (!flag)
-                {
-                    if (LabelUserAction != null)
-                        LabelUserAction(this, new LabelUserActionEventArgs(index, x_percent, y_percent, LabelUserActionEventArgs.ActionType.leftClick));
-
-                }
-                //左键
-
-                ////添加
-                //var referRect = getLabelRectangle(0, 0); //参考矩形
-                //x_percent = (startP.X * zoom + e.X - referRect.Width / 2) / image.Width;
-                //y_percent = (startP.Y * zoom + e.Y - referRect.Height / 2) / image.Height;
-                ////重新计算，为了契合鼠标点击的目标
-                //if(LabelUserAddAction!=null)
-                //    LabelUserAddAction(this, new LabelUserActionEventArgs(index, x_percent, y_percent));
+                if (!_lastMouseDownArea.Contains(e.Location)) return;
+                if (LabelUserAction != null)
+                    LabelUserAction(this, new LabelUserActionEventArgs(clickedLabelIndex, x_percent, y_percent, LabelUserActionEventArgs.ActionType.leftClick));
             }
             else if (e.Button == System.Windows.Forms.MouseButtons.Right)
             {
                 //右键
-                if (LabelUserAction != null)
-                    LabelUserAction(this, new LabelUserActionEventArgs(index, x_percent, y_percent, LabelUserActionEventArgs.ActionType.rightClick));
-
-                ////删除
-                //if (index == -1) return;                
-                //if(LabelUserDelAction!=null)
-                //    LabelUserDelAction(this, new LabelUserActionEventArgs(index, x_percent, y_percent));
+                if(clickedLabelIndex != -1)
+                {
+                    if (LabelUserAction != null)
+                        LabelUserAction(this, new LabelUserActionEventArgs(clickedLabelIndex, x_percent, y_percent, LabelUserActionEventArgs.ActionType.rightClickDel));
+                }
+                else
+                {
+                    if (LabelUserAction != null)
+                        LabelUserAction(this, new LabelUserActionEventArgs(clickedLabelIndex, x_percent, y_percent, LabelUserActionEventArgs.ActionType.rightClickAdd));
+                }
             }
-            //else if (!ctrlBepush && e.Button == System.Windows.Forms.MouseButtons.Left)
-            //{
-            //    //点击事件
-            //    if (index == -1) return;
-            //    if (LabelUserClickAction != null)
-            //        LabelUserClickAction(this, new LabelUserActionEventArgs(index, x_percent, y_percent));
-            //}
-            //else if (!ctrlBepush && e.Button == System.Windows.Forms.MouseButtons.Right) 
-            //{ 
-            //    //检阅模式
-
-            //}
         }
 
         private void MoveLabelCommand(float x_percent, float y_percent)
         {
             LabelUndo label = new LabelUndo()
             {
-                Index = dragLabelPrevious.Index,
+                Index = _draggingLabelUndoStart.Index,
                 Location = new Location() { X_percent = x_percent, Y_percent = y_percent },
 
             };
-            label.LocationPrevious = new LocationPrevious() { X_percent = dragLabelPrevious.Location.X_percent, Y_percent = dragLabelPrevious.Location.Y_percent };
+            label.LocationPrevious = new LocationPrevious() { X_percent = _draggingLabelUndoStart.Location.X_percent, Y_percent = _draggingLabelUndoStart.Location.Y_percent };
             MoveLabelCommand moveLabelCommand = new MoveLabelCommand(MoveLabel, UndoMoveLabel, label);
             UndoRedoManager.LabelCommandPool.Register(moveLabelCommand);
             moveLabelCommand.Excute();
@@ -698,54 +643,52 @@ namespace LabelPlus
 
         private void MoveLabel(LabelUndo label)
         {
-            dragLabel.X_percent = label.Location.X_percent;
-            dragLabel.Y_percent = label.Location.Y_percent;
+            _draggingLabelItem.X_percent = label.Location.X_percent;
+            _draggingLabelItem.Y_percent = label.Location.Y_percent;
             //Console.WriteLine(dragLabel.X_percent + "    " + dragLabel.Y_percent);
             //dragLabel = null;
-            dragStart = false;
             if (LabelUserAction != null)
                 LabelUserAction(this, new LabelUserActionEventArgs(label.Index, label.Location.X_percent, label.Location.Y_percent, LabelUserActionEventArgs.ActionType.labelChanged));
         }
 
         private void UndoMoveLabel(LabelUndo label)
         {
-            dragLabel.X_percent = label.LocationPrevious.X_percent;
-            dragLabel.Y_percent = label.LocationPrevious.Y_percent;
+            _draggingLabelItem.X_percent = label.LocationPrevious.X_percent;
+            _draggingLabelItem.Y_percent = label.LocationPrevious.Y_percent;
             //Console.WriteLine(dragLabel.X_percent + "    " + dragLabel.Y_percent);
             //dragLabel = null;
-            dragStart = false;
             if (LabelUserAction != null)
                 LabelUserAction(this, new LabelUserActionEventArgs(label.Index, label.LocationPrevious.X_percent, label.LocationPrevious.Y_percent, LabelUserActionEventArgs.ActionType.labelChanged));
         }
 
         bool tooltop_showing = false;
-        int lastMouseIndex = -1;
+        int _lastHoverIndex = -1;
         private void PicView_MouseMove(object sender, MouseEventArgs e)
         {
             try
             {
+                PointF imgPoint = ScreenToImage(e.Location);
+                int hoverIndex = GetLabelIndexAt(imgPoint);
 
-                int index = getLabelIndex(e.X, e.Y);
-                //Console.WriteLine(e.X+"  "+e.Y);
-
-
-                if (index != lastMouseIndex)
+                if (hoverIndex != _lastHoverIndex)
                 {
                     if (LabelUserAction != null)
-                        LabelUserAction(this, new LabelUserActionEventArgs(index, e.X, e.Y, LabelUserActionEventArgs.ActionType.mouseIndexChanged));
+                        LabelUserAction(this, new LabelUserActionEventArgs(hoverIndex, e.X, e.Y, LabelUserActionEventArgs.ActionType.mouseIndexChanged));
                 }
-                lastMouseIndex = index;
+                _lastHoverIndex = hoverIndex;
 
 
                 //提示文本
-                if (index != -1)
+                if (hoverIndex != -1 && !_isDraggingLabel)
                 {
                     if (!tooltop_showing)
                     {
-                        var location = e.Location;
-                        location.X += this.Cursor.Size.Width / 3;
-                        location.Y += this.Cursor.Size.Height / 3;
-                        toolTip.Show(labels[index].Text, this, location);
+                        var geo = LabelGeometry.CalcLabelGeometry(_labels[hoverIndex], _sourceImage, _zoom);
+                        var locationF = ImageToScreen(geo.Top);
+                        var location = new Point((int)locationF.X, (int)locationF.Y);
+                        location.X += this.Cursor.Size.Width / 2;
+                        location.Y -= this.Cursor.Size.Height / 2;
+                        toolTip.Show(_labels[hoverIndex].Text, this, location);
                         tooltop_showing = true;
                     }
                 }
@@ -762,13 +705,12 @@ namespace LabelPlus
         {
             if (e.KeyCode == Keys.V)
             {
-                hideLabel = true;
-                MakeImageNow();
+                _hideLabel = true;
+                Invalidate();
             }
             else if (e.KeyCode == Keys.C)
             {
-                showGroup = true;
-                MakeImageNow();
+                Invalidate();
             }
         }
 
@@ -776,19 +718,23 @@ namespace LabelPlus
         {
             if (e.KeyCode == Keys.V)
             {
-                hideLabel = false;
-                MakeImageNow();
+                _hideLabel = false;
+                Invalidate();
             }
             else if (e.KeyCode == Keys.C)
             {
-                showGroup = false;
-                MakeImageNow();
+                Invalidate();
             }
         }
 
 
         #endregion
-
+        static float Clamp(float v, float min, float max)
+        {
+            if (v < min) return min;
+            if (v > max) return max;
+            return v;
+        }
         private void PicView_MouseUp(object sender, MouseEventArgs e)
         {
 

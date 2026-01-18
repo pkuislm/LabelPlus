@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>LabelPlus</RootNamespace>
     <AssemblyName>LabelPlus</AssemblyName>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>发布\</PublishUrl>
     <Install>true</Install>
@@ -80,6 +81,11 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Deployment" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Net" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -90,6 +96,7 @@
     <Compile Include="AboutFrm.designer.cs">
       <DependentUpon>AboutFrm.cs</DependentUpon>
     </Compile>
+    <Compile Include="APIManager.cs" />
     <Compile Include="Command\Command.cs" />
     <Compile Include="Command\CommandPool.cs" />
     <Compile Include="Command\Deque.cs" />
@@ -100,9 +107,16 @@
     <Compile Include="Command\LabelCommand\LabelUndo.cs" />
     <Compile Include="Command\LabelCommand\MoveLabelCommand.cs" />
     <Compile Include="Command\UndoRedoManager.cs" />
+    <Compile Include="ContextMenuOutsideClickFilter.cs" />
+    <Compile Include="DataGridViewAdapter.cs" />
+    <Compile Include="DownloadProgressForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DownloadProgressForm.Designer.cs">
+      <DependentUpon>DownloadProgressForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="FolderPicker.cs" />
     <Compile Include="GlobalVar.cs" />
-    <Compile Include="GroupButtonAdaptor.cs" />
     <Compile Include="GroupDefineItem.cs" />
     <Compile Include="GroupDefineItemCollection.cs" />
     <Compile Include="GroupSettingFrm.cs">
@@ -111,25 +125,42 @@
     <Compile Include="GroupSettingFrm.Designer.cs">
       <DependentUpon>GroupSettingFrm.cs</DependentUpon>
     </Compile>
-    <Compile Include="ImageOutputFrm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ImageOutputFrm.Designer.cs">
-      <DependentUpon>ImageOutputFrm.cs</DependentUpon>
-    </Compile>
     <Compile Include="LabelItem.cs" />
     <Compile Include="LabelFileManager.cs" />
-    <Compile Include="ListViewAdpter.cs" />
+    <Compile Include="LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="LoginForm.Designer.cs">
+      <DependentUpon>LoginForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="ManageImageFrm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="ManageImageFrm.Designer.cs">
       <DependentUpon>ManageImageFrm.cs</DependentUpon>
     </Compile>
+    <Compile Include="MoetranDownloader.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MoetranDownloader.Designer.cs">
+      <DependentUpon>MoetranDownloader.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MoetranUploader.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MoetranUploader.Designer.cs">
+      <DependentUpon>MoetranUploader.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="SearchReplaceForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SearchReplaceForm.Designer.cs">
+      <DependentUpon>SearchReplaceForm.cs</DependentUpon>
     </Compile>
     <Compile Include="StringResources.cs" />
     <Compile Include="LangComboxAdaptor.cs" />
@@ -154,18 +185,28 @@
     <Compile Include="ZoomAdaptor.cs" />
     <EmbeddedResource Include="AboutFrm.resx">
       <DependentUpon>AboutFrm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="DownloadProgressForm.resx">
+      <DependentUpon>DownloadProgressForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="GroupSettingFrm.resx">
       <DependentUpon>GroupSettingFrm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ImageOutputFrm.resx">
-      <DependentUpon>ImageOutputFrm.cs</DependentUpon>
+    <EmbeddedResource Include="LoginForm.resx">
+      <DependentUpon>LoginForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="MainFrm.resx">
       <DependentUpon>MainFrm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ManageImageFrm.resx">
       <DependentUpon>ManageImageFrm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MoetranDownloader.resx">
+      <DependentUpon>MoetranDownloader.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MoetranUploader.resx">
+      <DependentUpon>MoetranUploader.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="PicView.resx">
       <DependentUpon>PicView.cs</DependentUpon>
@@ -174,6 +215,9 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SearchReplaceForm.resx">
+      <DependentUpon>SearchReplaceForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">

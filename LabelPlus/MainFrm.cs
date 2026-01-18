@@ -9,9 +9,10 @@
 #region Using Directives
 using System;
 using System.Drawing;
-using System.Windows.Forms;
 using System.IO;
 using System.Threading;
+using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 #endregion
 
 namespace LabelPlus
@@ -33,6 +34,10 @@ namespace LabelPlus
         WorkspaceControlAdpter wsp_control_apt;
         ZoomAdaptor zoomAdaptor;
         LangComboxAdaptor langComboxApt;
+        DataGridViewAdapter dataGridViewAdapter;
+        APIManager apiManager = new APIManager();
+        MoetranDownloader moetranDownloader;
+        MoetranUploader moetranUploader;
 
         #endregion
 
@@ -131,28 +136,40 @@ namespace LabelPlus
         {
             this.Close();
         }
+
+        public void OpenWorkspace(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+                return;
+
+            if (wsp.NeedSave)
+                alter_and_save();
+
+            try
+            {
+                wsp.readWorkspaceFromFile(filePath);
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show(
+                    StringResources.GetValue("error_openfilefail") + "\r\n" + exp,
+                    "Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                return;
+            }
+
+            this.Text = FROM_TITLE + new FileInfo(filePath).Name;
+
+            wsp_control_apt.page_right();
+            toolStripComboBox_File.DroppedDown = true;
+        }
+
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            DialogResult result = openFileDialog.ShowDialog();
-            if (result == System.Windows.Forms.DialogResult.OK)
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
-                if (wsp.NeedSave)
-                    alter_and_save();
-                try
-                {
-                    wsp.readWorkspaceFromFile(openFileDialog.FileName);
-                }
-                catch (Exception exp)
-                {
-                    MessageBox.Show(StringResources.GetValue("error_openfilefail")
-                        + "\r\n" + exp.ToString());
-
-                    return;
-                }
-                this.Text = FROM_TITLE + new FileInfo(openFileDialog.FileName).Name;
-
-                wsp_control_apt.page_right();
-                toolStripComboBox_File.DroppedDown = true;
+                OpenWorkspace(openFileDialog.FileName);
             }
         }
         private void newToolStripMenuItem_Click(object sender, EventArgs e)
@@ -224,26 +241,7 @@ namespace LabelPlus
                 this.Text = FROM_TITLE + new FileInfo(wsp.Path).Name;
             }
         }
-        private void outputAllToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (!wsp.HavePath)
-            {
-                MessageBox.Show(StringResources.GetValue("input_images_need_save"));
-                return;
-            }
-
-            new ImageOutputFrm(wsp, picView).ShowDialog();
-        }
-        //private void outputPhotoshopScriptToolStripMenuItem_Click(object sender, EventArgs e)
-        //{
-        //    if (!wsp.HavePath)
-        //    {
-        //        MessageBox.Show(StringResources.GetValue("input_images_need_save"));
-        //        return;
-        //    }
-
-        //    new OutputScriptFrm(wsp).ShowDialog();
-        //}
+        
         private void imageToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (wsp.HavePath)
@@ -345,22 +343,26 @@ namespace LabelPlus
 
             Language.InitFormLanguage(this, StringResources.GetValue("lang"));
 
-            ToolStripButtonGroup modeBtnGroup = new ToolStripButtonGroup(toolStrip);
-            modeBtnGroup.AddButton(toolStripButton_BrowseMode);
-            modeBtnGroup.AddButton(toolStripButton_EditLabelMode);
-            modeBtnGroup.AddButton(toolStripButton_InputMode);
-            modeBtnGroup.AddButton(toolStripButton_CheckMode);
+            //ToolStripButtonGroup modeBtnGroup = new ToolStripButtonGroup(toolStrip);
+            //modeBtnGroup.AddButton(toolStripButton_BrowseMode);
+            //modeBtnGroup.AddButton(toolStripButton_EditLabelMode);
+            //modeBtnGroup.AddButton(toolStripButton_InputMode);
+            //modeBtnGroup.AddButton(toolStripButton_CheckMode);
+
+            dataGridViewAdapter = new DataGridViewAdapter(dataGridView1, wsp.GroupDefine);
+
+            apiManager.Init();
 
             wsp_control_apt = new WorkspaceControlAdpter(
-                modeBtnGroup,
                 toolStripComboBox_File,
                 TranslateTextBox,
                 TextBox_GroupBox,
-                new ListViewAdpter(listView, wsp.GroupDefine),
+                dataGridViewAdapter,
                 picView,
                 contextMenuStripQuickText,
                 toolStrip,
-                wsp);
+                wsp,
+                apiManager);
 
             zoomAdaptor = new ZoomAdaptor(picView,
                 toolStripButton_ZoomPlus,
@@ -370,6 +372,8 @@ namespace LabelPlus
             langComboxApt = new LangComboxAdaptor(langToolStripComboBox, this);
 
             SetLayout();
+
+            SetFont(new Font(GlobalVar.FontName, GlobalVar.FontSize));
         }
         #endregion
 
@@ -411,6 +415,12 @@ namespace LabelPlus
         }
         #endregion
 
+        public void SetFont(Font font)
+        {
+            TranslateTextBox.Font = font;
+            dataGridViewAdapter.SetFont(font);
+        }
+
         private void picView_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
             if (e.KeyCode == Keys.T)
@@ -426,6 +436,108 @@ namespace LabelPlus
                 saveSToolStripMenuItem_Click(sender, new EventArgs());
             }
         }
-    }
 
+        private void toolStripButton1_Click(object sender, EventArgs e)
+        {
+            FontDialog fontDlg = new FontDialog
+            {
+                Font = TranslateTextBox.Font
+            };
+
+            if (fontDlg.ShowDialog() == DialogResult.OK)
+            {
+                SetFont(fontDlg.Font);
+
+                GlobalVar.FontName = fontDlg.Font.Name;
+                GlobalVar.FontSize = fontDlg.Font.Size;
+                GlobalVar.Save();
+            }
+        }
+
+        private void toolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            if(moetranDownloader == null || moetranDownloader.IsDisposed)
+            {
+                moetranDownloader = new MoetranDownloader(apiManager);
+            }
+
+            if (!apiManager.IsLoggedIn())
+            {
+                MessageBox.Show("Please login before using this function.");
+                apiManager.Login(() =>
+                {
+                    moetranDownloader.Show();
+                });
+            }
+            else
+            {
+                moetranDownloader.Show();
+            }
+        }
+
+        private void connectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!apiManager.IsLoggedIn())
+            {
+                loginStatusTextBox.Text = "Not logged in";
+                downloadRemoteProjectMenuItem.Enabled = false;
+                uploadLocalProjectMenuItem.Enabled = false;
+                loginMenuItem.Enabled = true;
+                logoutMenuItem.Enabled = false;
+            }
+            else
+            {
+                loginStatusTextBox.Text = string.Format("User: {0}", apiManager.UserName);
+                downloadRemoteProjectMenuItem.Enabled = true;
+                uploadLocalProjectMenuItem.Enabled = true;
+                loginMenuItem.Enabled = false;
+                logoutMenuItem.Enabled = true;
+            }
+        }
+
+        private void toolStripMenuItem3_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (moetranUploader == null || moetranUploader.IsDisposed)
+                {
+                    moetranUploader = new MoetranUploader(apiManager, wsp);
+                }
+
+                if (!apiManager.IsLoggedIn())
+                {
+                    MessageBox.Show("Please login before using this function.");
+                    apiManager.Login(() =>
+                    {
+                        moetranUploader.UploadProject();
+                    });
+                }
+                else
+                {
+                    moetranUploader.UploadProject();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                "Upload failed：" + ex.Message,
+                "Error",
+                MessageBoxButtons.OK);
+            }
+        }
+
+        private void toolStripMenuItem4_Click(object sender, EventArgs e)
+        {
+            if (apiManager.IsLoggedIn())
+            {
+                apiManager.Logout();
+            }
+            apiManager.Login(null);
+        }
+
+        private void toolStripMenuItem5_Click(object sender, EventArgs e)
+        {
+            apiManager.Logout();
+        }
+    }
 }

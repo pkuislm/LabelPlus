@@ -23,16 +23,16 @@ namespace LabelPlus
 
         #region Fields
 
-        ToolStripButtonGroup modebuttons;
         ToolStripComboBox combo;
         TextBox textbox;
         PicView picview;
         GroupBox textboxgroupbox;
         ContextMenuStrip menuquicktext;
-        ListViewAdpter listviewapt;
-        GroupButtonAdaptor groupbuttons;
+        DataGridViewAdapter listviewapt;
         ToolStrip toolstrip;
+        APIManager apiManager;
         Workspace wsp;
+        int groupIndex = 0;
 
         enum WorkMode
         {
@@ -72,7 +72,6 @@ namespace LabelPlus
         }
         public void page_right()
         {
-            UndoRedoManager.labelCommandPool.Clear();
             try
             {
                 UndoRedoManager.labelCommandPool.Clear();
@@ -82,6 +81,18 @@ namespace LabelPlus
             }
             catch { }
         }
+
+        public void page_to(int index)
+        {
+            try
+            {
+                UndoRedoManager.labelCommandPool.Clear();
+                if (index != combo.Items.Count - 1)
+                    combo.SelectedIndex = index;
+            }
+            catch { }
+        }
+
         public void NewFile()
         {
             fileName = "";
@@ -113,27 +124,15 @@ namespace LabelPlus
             switch (e.Type)
             {
                 case PicView.LabelUserActionEventArgs.ActionType.leftClick:
-                    if (ctrlBePush)
-                    {
-                        //add
-                        AddLabelCommand(e);
-                    }
-                    else
-                    {
-                        //normal click
-                        if (e.Index == -1)
-                            return;
-
-                        listviewapt.SelectedIndex = e.Index;
-                        textbox.Focus();
-                    }
+                    AddLabelCommand(e, 1);
                     break;
-                case PicView.LabelUserActionEventArgs.ActionType.rightClick:
-                    if (ctrlBePush)
-                    {
-                        //del
-                        DeleteLabelCommand(e);
-                    }
+                case PicView.LabelUserActionEventArgs.ActionType.rightClickAdd:
+                    //add
+                    AddLabelCommand(e, 2);
+                    break;
+                case PicView.LabelUserActionEventArgs.ActionType.rightClickDel:
+                    //del
+                    DeleteLabelCommand(e);
                     break;
                 case PicView.LabelUserActionEventArgs.ActionType.labelChanged:
                     {
@@ -157,13 +156,13 @@ namespace LabelPlus
         }
 
 
-        private void AddLabelCommand(PicView.LabelUserActionEventArgs e)
+        private void AddLabelCommand(PicView.LabelUserActionEventArgs e, int category = 1)
         {
             LabelUndo label = new LabelUndo()
             {
                 Index = listviewapt.Count,
                 Location = new Location() { X_percent = e.X_percent, Y_percent = e.Y_percent },
-                Category = groupbuttons.SelectIndex + 1,
+                Category = category,
             };
 
             AddLabelCommand addLabelCommand = new AddLabelCommand(AddLabel, DeleteLabel, label);
@@ -180,11 +179,22 @@ namespace LabelPlus
             {
                 Index = e.Index,
                 Location = new Location() { X_percent = e.X_percent, Y_percent = e.Y_percent },
-                Category = groupbuttons.SelectIndex + 1,
+                Category = groupIndex + 1,
             };
 
-            if (LabelFileManager.store[fileName][e.Index].Text != null)
+            if (!string.IsNullOrEmpty(LabelFileManager.store[fileName][e.Index].Text))
+            {
                 label.Text = LabelFileManager.store[fileName][e.Index].Text;
+                if(MessageBox.Show(
+                    StringResources.GetValue("tip_sure_del_label_with_text"),
+                    "Warning",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning) != DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+                
 
             label.Category = LabelFileManager.store[fileName][e.Index].Category;
             DeleteLabelCommand deleteLabelCommand = new DeleteLabelCommand(DeleteLabel, AddLabel, label);
@@ -206,12 +216,12 @@ namespace LabelPlus
 
         private void picView_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
-            if (e.KeyCode >= Keys.D1 && e.KeyCode <= Keys.D9)
+            if (e.KeyCode >= Keys.D1 && e.KeyCode <= Keys.D2)
             {
                 int index = e.KeyCode - Keys.D1;
                 if (index <= wsp.GroupDefine.UserGroupCount)
                 {
-                    groupbuttons.SelectIndex = index;
+                    //groupIndex = index;
                 }
             }
             else if (e.KeyCode == Keys.Left)
@@ -224,27 +234,29 @@ namespace LabelPlus
 
         private void picViewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Q)
+            //if (e.KeyCode == Keys.Q)
+            //{
+            //    modebuttons.SelectedButtonIndex = 0;
+            //}
+            //else if (e.KeyCode == Keys.W)
+            //{
+            //    modebuttons.SelectedButtonIndex = 1;
+            //}
+            //else if (e.KeyCode == Keys.E)
+            //{
+            //    modebuttons.SelectedButtonIndex = 2;
+            //}
+            //else if (e.KeyCode == Keys.R)
+            //{
+            //    modebuttons.SelectedButtonIndex = 3;
+            //}
+            //else
+            if (e.KeyCode == Keys.A)
             {
-                modebuttons.SelectedButtonIndex = 0;
-            }
-            else if (e.KeyCode == Keys.W)
-            {
-                modebuttons.SelectedButtonIndex = 1;
-            }
-            else if (e.KeyCode == Keys.E)
-            {
-                modebuttons.SelectedButtonIndex = 2;
-            }
-            else if (e.KeyCode == Keys.R)
-            {
-                modebuttons.SelectedButtonIndex = 3;
-            }
-            else if (e.KeyCode == Keys.A)
-            {
+                var filter = new ContextMenuOutsideClickFilter(menuquicktext);
+                Application.AddMessageFilter(filter);
                 menuquicktext.Show(Control.MousePosition);
                 e.SuppressKeyPress = true;
-
             }
             if (e.Control)
             {
@@ -276,22 +288,28 @@ namespace LabelPlus
                     setTextboxText(wsp.Store[fileName][itemIndex].Text);
                     textboxgroupbox.Text = (itemIndex + 1).ToString();
 
-                    if (workMode == WorkMode.Input)
-                    {
-                        if (picview.Focused)
-                            return;
-                        if (listviewapt.SelectedIndexCount > 1)
-                            return;
-                        picview.SetLabelVisual(listviewapt.SelectedIndex);
-                    }
-                    else if (workMode == WorkMode.Check)
-                    {
-                        if (listviewapt.SelectedIndexCount > 1)
-                            return;
+                    if (listviewapt.SelectedIndexCount > 1)
+                        return;
 
-                        if (listviewapt.ListView.Focused == true)
-                            picview.SetLabelVisual(listviewapt.SelectedIndex);
-                    }
+                    textbox.Focus();
+                    if(sender != null)
+                        picview.SetLabelVisual(listviewapt.SelectedIndex);
+                    //if (workMode == WorkMode.Input)
+                    //{
+                    //    if (picview.Focused)
+                    //        return;
+                    //    if (listviewapt.SelectedIndexCount > 1)
+                    //        return;
+                    //    picview.SetLabelVisual(listviewapt.SelectedIndex);
+                    //}
+                    //else if (workMode == WorkMode.Check)
+                    //{
+                    //    if (listviewapt.SelectedIndexCount > 1)
+                    //        return;
+                    //
+                    //    if (listviewapt.ListView.Focused == true)
+                    //        picview.SetLabelVisual(listviewapt.SelectedIndex);
+                    //}
                 }
             }
             catch { }
@@ -392,6 +410,8 @@ namespace LabelPlus
                 if (e.KeyCode == Keys.A)
                 {
                     //Alt+A
+                    var filter = new ContextMenuOutsideClickFilter(menuquicktext);
+                    Application.AddMessageFilter(filter);
                     menuquicktext.Show(textbox, textbox.Location);
                     e.SuppressKeyPress = true;
                 }
@@ -407,12 +427,9 @@ namespace LabelPlus
                     //Ctrl+enter
                     try
                     {
-                        listviewapt.SelectedIndex += 1;
+                        listviewapt.SelectedIndex++;
                     }
-                    catch
-                    {
-                        listviewapt.SelectedIndex = -1;
-                    }
+                    catch { }
                     e.IsInputKey = true;
                 }
             }
@@ -434,32 +451,17 @@ namespace LabelPlus
         private void comboSelectedIndexChanged(object sender, EventArgs e)
         {
             fileName = combo.Text;
-            picview.EnableMakeImage = false;
             picview.LoadImage(wsp.DirPath + @"\" + combo.Text);
-            picview.EnableMakeImage = true;
             labelItemListChanged(null, null);
             listviewapt.SelectedIndex = 0;
         }
 
 
 
-        private void userGroupChanged(object sender, EventArgs e)
-        {
-            groupbuttons.Refresh(wsp.GroupDefine);
-        }
-
-        private void modeButtons_IndexChanged(object sender, EventArgs e)
-        {
-            workMode = (WorkMode)(modebuttons.SelectedButtonIndex);
-
-            if (workMode == WorkMode.Check)
-                picview.AlwaysShowGroup = true;
-            else
-                picview.AlwaysShowGroup = false;
-
-            Console.WriteLine(workMode);
-        }
-
+        //private void userGroupChanged(object sender, EventArgs e)
+        //{
+            //groupbuttons.Refresh(wsp.GroupDefine);
+        //}
 
         private void picView_MouseMove(object sender, MouseEventArgs e)
         {
@@ -487,9 +489,9 @@ namespace LabelPlus
             }
         }
 
-        private void listViewUserAction(object sender, ListViewAdpter.UserActionEventArgs e)
+        private void listViewUserAction(object sender, DataGridViewAdapter.UserActionEventArgs e)
         {
-            if (e.Action == ListViewAdpter.UserActionEventArgs.ActionType.del)
+            if (e.Action == DataGridViewAdapter.UserActionEventArgs.ActionType.del)
             {
                 if (MessageBox.Show(
                     StringResources.GetValue("tip_sure_del_label"),
@@ -500,15 +502,14 @@ namespace LabelPlus
                     return;
                 }
             }
-            picview.EnableMakeImage = false;
             if (e.Value <= wsp.GroupDefine.UserGroupCount)
             {
                 for (int i = e.Index.Length - 1; i >= 0; i--)
                 {
                     int index = e.Index[i];
-                    if (e.Action == ListViewAdpter.UserActionEventArgs.ActionType.setGroup)
+                    if (e.Action == DataGridViewAdapter.UserActionEventArgs.ActionType.setGroup)
                         wsp.Store.UpdateLabelCategory(fileName, index, e.Value);
-                    else if (e.Action == ListViewAdpter.UserActionEventArgs.ActionType.del)
+                    else if (e.Action == DataGridViewAdapter.UserActionEventArgs.ActionType.del)
                     {
                         wsp.Store.DelLabelItem(fileName, index);
                         //清空标签池
@@ -516,8 +517,7 @@ namespace LabelPlus
                     }
                 }
             }
-            picview.EnableMakeImage = true;
-            picview.MakeImageNow();
+            picview.Invalidate();
         }
 
 
@@ -538,7 +538,7 @@ namespace LabelPlus
                         poi.X,
                         poi.Y,
                         e.ClickedItem.ToolTipText,
-                        groupbuttons.SelectIndex + 1),
+                        groupIndex + 1),
                     listviewapt.Count);
 
                 listviewapt.SelectedIndex = listviewapt.Count - 1;
@@ -558,19 +558,19 @@ namespace LabelPlus
 
         #region Constructors
         public WorkspaceControlAdpter(
-            ToolStripButtonGroup ModeButtons,
             ToolStripComboBox FileSelectComboBox,
             TextBox TranslateTextBox,
             GroupBox TextBoxGroupBox,
-            ListViewAdpter LabelListViewAPT,
+            DataGridViewAdapter LabelListViewAPT,
             PicView picView,
             ContextMenuStrip contextMenuQuictText,
             ToolStrip toolStrip,
-            Workspace workspace)
+            Workspace workspace,
+            APIManager apiManager)
         {
-
+            this.apiManager = apiManager;
             wsp = workspace;
-            wsp.UserGroupDefineChanged += new EventHandler(userGroupChanged);
+            //wsp.UserGroupDefineChanged += new EventHandler(userGroupChanged);
 
             LabelFileManager.FileListChanged += new EventHandler(fileListChanged);
             LabelFileManager.LabelItemListChanged += new EventHandler(labelItemListChanged);
@@ -598,11 +598,8 @@ namespace LabelPlus
             textbox.TextChanged += new EventHandler(textbox_TextChanged);
 
             listviewapt = LabelListViewAPT;
-            listviewapt.ListViewSelectedIndexChanged += new EventHandler(listViewSelectedIndexChanged);
-            listviewapt.UserSetCategory += new ListViewAdpter.UserActionEventHandler(listViewUserAction);
-
-            this.modebuttons = ModeButtons;
-            this.modebuttons.IndexChanged += new EventHandler(modeButtons_IndexChanged);
+            listviewapt.SelectedIndexChanged += new EventHandler(listViewSelectedIndexChanged);
+            listviewapt.UserSetCategory += new DataGridViewAdapter.UserActionEventHandler(listViewUserAction);
 
             menuquicktext = contextMenuQuictText;
             foreach (GlobalVar.QuickTextItem item in GlobalVar.QuickTextItems)
@@ -614,8 +611,9 @@ namespace LabelPlus
             menuquicktext.ItemClicked += new ToolStripItemClickedEventHandler(quickTextItemClicked);
             menuquicktext.Opened += new EventHandler(quickTextOpened);
             menuquicktext.Closed += new ToolStripDropDownClosedEventHandler(quickTextClosed);
+            menuquicktext.AutoClose = false;
 
-            groupbuttons = new GroupButtonAdaptor(toolStrip, wsp.GroupDefine);
+            //groupbuttons = new GroupButtonAdaptor(toolStrip, wsp.GroupDefine);
 
             toolstrip = toolStrip;
             NewFile();

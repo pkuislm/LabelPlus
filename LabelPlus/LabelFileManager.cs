@@ -511,7 +511,7 @@ namespace LabelPlus
                     int count = 0;
                     List<LabelItem> items = store[name];
 
-                    sr.WriteLine();
+                    //sr.WriteLine();
                     sr.WriteLine(">>>>>>>>[" + name + "]<<<<<<<<");
                     foreach (var n in items)
                     {
@@ -523,7 +523,7 @@ namespace LabelPlus
                             n.Category.ToString() +
                             "]");
                         sr.WriteLine(n.Text);
-                        sr.WriteLine();
+                        //sr.WriteLine();
                     }
                 }
                 sr.Close();
@@ -550,7 +550,7 @@ namespace LabelPlus
                         int count = 0;
                         List<LabelItem> items = store[name];
 
-                        sr.WriteLine();
+                        //sr.WriteLine();
                         sr.WriteLine(">>>>>>>>[" + name + "]<<<<<<<<");
                         foreach (var n in items)
                         {
@@ -562,7 +562,7 @@ namespace LabelPlus
                                 n.Category.ToString() +
                                 "]");
                             sr.WriteLine(n.Text);
-                            sr.WriteLine();
+                            //sr.WriteLine();
                         }
                     }
                     sr.Close();

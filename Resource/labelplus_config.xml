@@ -58,11 +58,11 @@
   <GroupDefine>    
     <Group>
         <Name>框内</Name>
-        <RGB>255, 0, 0</RGB>
-    </Group>
-    <Group>
-        <Name>框外</Name>
-        <RGB>0, 0, 255</RGB>
+		<RGB>249,188,211</RGB>
+	</Group>
+	<Group>
+		<Name>框外</Name>
+		<RGB>255,205,0</RGB>
     </Group>
     <Group>
         <Name></Name>
@@ -93,5 +93,8 @@
         <RGB>148, 0, 211</RGB>
     </Group>        
   </GroupDefine>
-  
+  <Font>
+    <Name>SimHei</Name>
+    <Size>15</Size>
+  </Font>
 </AppConfig>

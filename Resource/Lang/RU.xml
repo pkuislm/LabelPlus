@@ -5,6 +5,7 @@
   <Form>
 
     <Name>MainFrm</Name>
+	<Text>LabelPlus</Text>
     <Controls>
       <!-- 菜单 -->
       <Control name="fileToolStripMenuItem" text="Файл(&amp;F)" />
@@ -111,7 +112,7 @@
     <String name="error_openfilefail" text="Невозможность открыть файл."/>
     <String name="error_file_version_over" text="Версия слишком новая!"/>
     <String name="error_file_startblocks_lost" text="Стартовые блоки потеряны."/> 
-	
+    <String name="tip_sure_del_label_with_text" text="This label is not null. Still delete?"/>
 	<!-- "listview右键菜单 -->
     <String name="listview_menustrip_del" text="Удал.(&amp;D)"/> 	
 	
