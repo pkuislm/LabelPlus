@@ -1,81 +1,36 @@
-# LabelPlus
+# LabelPlus+
 
-[![Build status](https://ci.appveyor.com/api/projects/status/je7w45o4k90ia411/branch/master?svg=true)](https://ci.appveyor.com/project/sgqy/labelplus/branch/master)
+基于[LabelPlus](https://github.com/LabelPlus/LabelPlus)修改的标号器。修改了一些功能
 
-标号器+ 漫画翻译辅助工具. 减少翻译工作交接成本. 导出文本至ps.
-A Easy tool for comic translation. Reduce communication costs of translator. Export text to Photoshop..
+## 较原版改动
 
-![img](pic/show.jpg)
++ 重写了PicView控件以优化缩放和标签绘制
++ 修改了交互逻辑，与[Moeflow前端](https://github.com/moeflow-com/moeflow-frontend)保持一致
++ 删除了不同的浏览模式
++ 只保留了框内框外两个标签组
++ 增加在线项目下载以及本地项目上传，理论上支持所有[Moeflow后端](https://github.com/moeflow-com/moeflow-backend)
 
-[Homepage](http://noodlefighter.com/label_plus)
+## 功能展示
 
+下载：
 
-[License](http://noodlefighter.com/label_plus/license)
+![下载项目](pic/asset1.gif)
 
+上传：
 
-## 导入/导出脚本
-
-将LabelPlus格式文本导入到其他图像处理、排版软件中需要导入脚本的支持：   
-
-- [Photoshop导入脚本](https://github.com/LabelPlus/PS-Script)
-- [Indesign导入脚本（by几千块）](https://github.com/jqk4388/ID-Script-labelplus)
-
-导出脚本：
-- [导出Photoshop档中的文本图层到LabelPlus文本](https://github.com/LabelPlus/PS-Script/blob/master/psd-to-labelplus-text.jsx)
-
-## 其他LabelPlus实现                          
-
-**项目目前处于开发停滞的状态，如果有更多功能需求，请多了解一下以下类似项目**            
-
-### Moeflow
-
-https://github.com/moeflow-com/moeflow-deploy
-
-自托管的WEB协作翻译工具，能导出LabelPlus文件格式。前身是萌翻在线网站，这是停止运营后整理释出的开源版本。
-
-目前已知的公开实例（服务器资源宝贵请勿滥用）：
-
-- 尨译：moetran.com
-- 煎肉：jraw.net
-
-
-### MomoLabelPlus
-
-https://github.com/alicewish/MomoLabelPlus
-
-PYQT实现的另一个LabelPlus，跨平台
-
-
-### LabelPlusFX
-
-https://github.com/Meodinger/LabelPlusFX
-
-JavaFX实现的另一个LabelPlus，跨平台
-
-
-## 其他翻译生产力工具
-
-收集一些试图提升漫画翻译领域的生产工具，可能是实验性的，请自行评估可用性。
-
-### BallonsTranslator
-
-https://github.com/dmMaze/BallonsTranslator
-
-深度学习辅助漫画翻译工具，支持一键机翻和简单的图像/文本编辑。
-
-### SickZil-Machine
-
-https://github.com/KUR-creative/SickZil-Machine
-
-很早的一个韩国人写的实验性项目，机器自动涂白。
+![上传项目](pic/asset2.gif)
 
 
 
-### YuzuMarker
+若您想要调整标签颜色，请打开`labelplus_config.xml`，修改`GroupDefine`中`Group`为`框内`和`框外`的两项内的`RGB`节点即可
 
-https://github.com/JeffersonQin/YuzuMarker
 
-框框画得很大的翻译工具。“次世代漫画汉化工具。本项目主要想要实现漫画汉化过程中多人协作，让工作流程简单化、系统化。”
+
+**注意：登录信息会保存在程序目录下的`moetran_token.bin`中，若您打算分享LabelPlus，请将该文件排除！**
+
+
+
+其他信息请参考原仓库的[说明](https://github.com/LabelPlus/LabelPlus/blob/master/README.md)
 
 
 
