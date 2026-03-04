@@ -26,6 +26,7 @@ namespace LabelPlus
 
         bool alter = false;
         bool alterNeedBak = false; 
+        public bool setVisualWhenIndexChanged = false;
         string path = "";
         
 

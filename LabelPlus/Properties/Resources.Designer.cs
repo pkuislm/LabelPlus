@@ -140,6 +140,16 @@ namespace LabelPlus.Properties {
         /// <summary>
         ///   查找 System.Drawing.Bitmap 类型的本地化资源。
         /// </summary>
+        internal static System.Drawing.Bitmap Follow {
+            get {
+                object obj = ResourceManager.GetObject("Follow", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   查找 System.Drawing.Bitmap 类型的本地化资源。
+        /// </summary>
         internal static System.Drawing.Bitmap font_minus {
             get {
                 object obj = ResourceManager.GetObject("font_minus", resourceCulture);
@@ -223,6 +233,16 @@ namespace LabelPlus.Properties {
         internal static System.Drawing.Bitmap T {
             get {
                 object obj = ResourceManager.GetObject("T", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   查找 System.Drawing.Bitmap 类型的本地化资源。
+        /// </summary>
+        internal static System.Drawing.Bitmap UnFollow {
+            get {
+                object obj = ResourceManager.GetObject("UnFollow", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

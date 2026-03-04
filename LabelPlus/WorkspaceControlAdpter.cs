@@ -294,14 +294,14 @@ namespace LabelPlus
                     textbox.Focus();
                     if(sender != null)
                         picview.SetLabelVisual(listviewapt.SelectedIndex);
-                    //if (workMode == WorkMode.Input)
-                    //{
-                    //    if (picview.Focused)
-                    //        return;
-                    //    if (listviewapt.SelectedIndexCount > 1)
-                    //        return;
-                    //    picview.SetLabelVisual(listviewapt.SelectedIndex);
-                    //}
+                    if (wsp.setVisualWhenIndexChanged)
+                    {
+                        if (picview.Focused)
+                            return;
+                        if (listviewapt.SelectedIndexCount > 1)
+                            return;
+                        picview.SetLabelVisual(listviewapt.SelectedIndex);
+                    }
                     //else if (workMode == WorkMode.Check)
                     //{
                     //    if (listviewapt.SelectedIndexCount > 1)
@@ -375,6 +375,14 @@ namespace LabelPlus
 
         private void textbox_KeyDown(object sender, KeyEventArgs e)
         {
+            if(e.KeyCode == Keys.Tab)
+            {
+                //tab
+                listviewapt.SelectedIndex++;
+                e.SuppressKeyPress = true;
+                return;
+            }
+
             if (e.Control)
             {
                 if (e.KeyCode == Keys.Enter)

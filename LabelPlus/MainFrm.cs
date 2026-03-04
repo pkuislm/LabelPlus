@@ -539,5 +539,19 @@ namespace LabelPlus
         {
             apiManager.Logout();
         }
+
+        private void toolStripButton2_Click(object sender, EventArgs e)
+        {
+            if(wsp.setVisualWhenIndexChanged)
+            {
+                wsp.setVisualWhenIndexChanged = false;
+                toolStripButton2.Image = Properties.Resources.UnFollow;
+            }
+            else
+            {
+                wsp.setVisualWhenIndexChanged = true;
+                toolStripButton2.Image = Properties.Resources.Follow;
+            }
+        }
     }
 }

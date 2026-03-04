@@ -70,6 +70,7 @@
             this.toolStripButton_EditBig = new System.Windows.Forms.ToolStripButton();
             this.toolStripButton_EditSmall = new System.Windows.Forms.ToolStripButton();
             this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
+            this.toolStripButton2 = new System.Windows.Forms.ToolStripButton();
             this.dataGridView1 = new System.Windows.Forms.DataGridView();
             this.CID = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.CText = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -440,7 +441,8 @@
             this.toolStripLabels.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripButton_EditBig,
             this.toolStripButton_EditSmall,
-            this.toolStripButton1});
+            this.toolStripButton1,
+            this.toolStripButton2});
             this.toolStripLabels.Location = new System.Drawing.Point(0, 0);
             this.toolStripLabels.Name = "toolStripLabels";
             this.toolStripLabels.Size = new System.Drawing.Size(446, 25);
@@ -477,6 +479,16 @@
             this.toolStripButton1.Text = "toolStripButton1";
             this.toolStripButton1.ToolTipText = "更改字体";
             this.toolStripButton1.Click += new System.EventHandler(this.toolStripButton1_Click);
+            // 
+            // toolStripButton2
+            // 
+            this.toolStripButton2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButton2.Image = global::LabelPlus.Properties.Resources.UnFollow;
+            this.toolStripButton2.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButton2.Name = "toolStripButton2";
+            this.toolStripButton2.Size = new System.Drawing.Size(24, 22);
+            this.toolStripButton2.Text = "toolStripButton2";
+            this.toolStripButton2.Click += new System.EventHandler(this.toolStripButton2_Click);
             // 
             // dataGridView1
             // 
@@ -575,9 +587,11 @@
             // 
             // TranslateTextBox
             // 
+            this.TranslateTextBox.AcceptsTab = true;
             this.TranslateTextBox.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.TranslateTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.TranslateTextBox.Font = new System.Drawing.Font("黑体", 12F);
+            this.TranslateTextBox.HideSelection = false;
             this.TranslateTextBox.Location = new System.Drawing.Point(3, 22);
             this.TranslateTextBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.TranslateTextBox.Multiline = true;
@@ -720,6 +734,7 @@
         private System.Windows.Forms.ToolStripMenuItem uploadLocalProjectMenuItem;
         private System.Windows.Forms.ToolStripMenuItem loginMenuItem;
         private System.Windows.Forms.ToolStripMenuItem logoutMenuItem;
+        private System.Windows.Forms.ToolStripButton toolStripButton2;
     }
 }
 

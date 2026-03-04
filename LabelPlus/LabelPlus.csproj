@@ -246,9 +246,11 @@
     <None Include="Resources\L.png" />
     <None Include="Resources\hide.png" />
     <None Include="Resources\Input.png" />
+    <None Include="Resources\Follow.png" />
     <Content Include="Resources\left.png" />
     <Content Include="Resources\right.png" />
     <None Include="Resources\T.png" />
+    <None Include="Resources\UnFollow.png" />
     <Content Include="Resources\zoom_minus.png" />
     <Content Include="Resources\zoom_plus.png" />
   </ItemGroup>
