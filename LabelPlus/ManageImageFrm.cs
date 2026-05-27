@@ -151,6 +151,7 @@ namespace LabelPlus
                 }
             }
 
+            store.RearrangeFiles();
             this.Close();
         }
 

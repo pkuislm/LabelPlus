@@ -9,15 +9,20 @@
 #region Using Directives
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 #endregion
 
 namespace LabelPlus
 {
     public class LabelFileManager
     {
+
+        [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+        private static extern int StrCmpLogicalW(string x, string y);
+
         #region Const
         // 主次版本号
         // 主版本迭代一次 说明旧版本对新版本不兼容 可能无法正常读取 或导致丢失信息
@@ -268,10 +273,6 @@ namespace LabelPlus
             try
             {
                 addFile(file);
-                //以file升序排序
-                store = store.OrderBy(o => o.Key).ToDictionary(o => o.Key, p => p.Value);
-
-                OnFileListChanged();
                 return true;
             }
             catch { return false; }
@@ -320,10 +321,22 @@ namespace LabelPlus
             try
             {
                 store.Remove(file);
-                OnFileListChanged();
+                //OnFileListChanged();
                 return true;
             }
             catch { return false; }
+        }
+
+        public void RearrangeFiles()
+        {
+            try
+            {
+                //以file升序排序
+                store = store.OrderBy(o => o.Key, Comparer<string>.Create(StrCmpLogicalW))
+                    .ToDictionary(o => o.Key, p => p.Value);
+                OnFileListChanged();
+            }
+            catch { }
         }
         //public bool DelAllFiles()
         //{

@@ -373,7 +373,9 @@ namespace LabelPlus
 
             SetLayout();
 
-            SetFont(new Font(GlobalVar.FontName, GlobalVar.FontSize));
+            SetFont(new Font(GlobalVar.FontName, GlobalVar.FontSize, (FontStyle)GlobalVar.FontStyle));
+
+            SetVisualWhenIndexChanged(GlobalVar.SetVisualWhenIndexChanged);
         }
         #endregion
 
@@ -450,6 +452,7 @@ namespace LabelPlus
 
                 GlobalVar.FontName = fontDlg.Font.Name;
                 GlobalVar.FontSize = fontDlg.Font.Size;
+                GlobalVar.FontStyle = (int)fontDlg.Font.Style;
                 GlobalVar.Save();
             }
         }
@@ -542,16 +545,22 @@ namespace LabelPlus
 
         private void toolStripButton2_Click(object sender, EventArgs e)
         {
-            if(wsp.setVisualWhenIndexChanged)
+            GlobalVar.SetVisualWhenIndexChanged = !wsp.setVisualWhenIndexChanged;
+            SetVisualWhenIndexChanged(!wsp.setVisualWhenIndexChanged);
+        }
+
+        private void SetVisualWhenIndexChanged(bool val)
+        {
+            wsp.setVisualWhenIndexChanged = val;
+            if (val)
             {
-                wsp.setVisualWhenIndexChanged = false;
-                toolStripButton2.Image = Properties.Resources.UnFollow;
+                toolStripButton2.Image = Properties.Resources.Follow;
             }
             else
             {
-                wsp.setVisualWhenIndexChanged = true;
-                toolStripButton2.Image = Properties.Resources.Follow;
+                toolStripButton2.Image = Properties.Resources.UnFollow;
             }
+            GlobalVar.Save();
         }
     }
 }

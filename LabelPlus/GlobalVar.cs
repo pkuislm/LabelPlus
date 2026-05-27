@@ -34,6 +34,8 @@ namespace LabelPlus
 
         public static string FontName;
         public static float FontSize;
+        public static int FontStyle;
+        public static bool SetVisualWhenIndexChanged;
 
         public static void Reload() {
  
@@ -97,6 +99,8 @@ namespace LabelPlus
 
             FontName = doc.SelectSingleNode("AppConfig/Font/Name").InnerText;
             FontSize = Convert.ToSingle(doc.SelectSingleNode("AppConfig/Font/Size").InnerText);
+            FontStyle = Convert.ToInt32(doc.SelectSingleNode("AppConfig/Font/Style").InnerText);
+            SetVisualWhenIndexChanged = Convert.ToBoolean(doc.SelectSingleNode("AppConfig/SetVisualWhenIndexChanged").InnerText);
         }
 
         public static void Save()
@@ -107,6 +111,8 @@ namespace LabelPlus
 
             doc.SelectSingleNode("AppConfig/Font/Name").InnerText = FontName;
             doc.SelectSingleNode("AppConfig/Font/Size").InnerText = FontSize.ToString();
+            doc.SelectSingleNode("AppConfig/Font/Style").InnerText = FontStyle.ToString();
+            doc.SelectSingleNode("AppConfig/SetVisualWhenIndexChanged").InnerText = SetVisualWhenIndexChanged.ToString();
 
             using (XmlWriter wr = XmlWriter.Create(
                 @"labelplus_config.xml",

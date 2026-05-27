@@ -2,7 +2,8 @@
 <AppConfig>
 
   <DefaultComment>Default Comment\n You can edit me</DefaultComment>
-  <SetLabelVisualRatio>0.5,0.2</SetLabelVisualRatio>  
+  <SetLabelVisualRatio>0.5,0.2</SetLabelVisualRatio>
+  <SetVisualWhenIndexChanged>false</SetVisualWhenIndexChanged>
   
   <QuickText>
     <Item>
@@ -93,5 +94,9 @@
         <RGB>148, 0, 211</RGB>
     </Group>        
   </GroupDefine>
-  
+  <Font>
+    <Name>SimHei</Name>
+    <Size>15</Size>
+    <Style>1</Style>
+  </Font>
 </AppConfig>

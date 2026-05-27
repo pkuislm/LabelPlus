@@ -362,13 +362,18 @@ namespace LabelPlus
                     }
                 }
 
+                combo.SelectedIndexChanged += comboSelectedIndexChanged;
+
                 int n = combo.FindStringExact(beforeFile);
                 if (n != -1)
                 {
                     combo.SelectedIndex = n;
                 }
+                else
+                {
+                    combo.SelectedIndex = 0;
+                }
 
-                combo.SelectedIndexChanged += comboSelectedIndexChanged;
             }
             catch { }
         }
