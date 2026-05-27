@@ -703,26 +703,19 @@ namespace LabelPlus
 
         private void PicView_label_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.V)
+            if (ShortcutManager.Matches(ShortcutManager.HideLabels, e))
             {
                 _hideLabel = true;
-                Invalidate();
-            }
-            else if (e.KeyCode == Keys.C)
-            {
                 Invalidate();
             }
         }
 
         private void PicView_Label_KeyUp(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.V)
+            Keys shortcut = ShortcutManager.GetKeys(ShortcutManager.HideLabels);
+            if ((shortcut & Keys.KeyCode) == (e.KeyCode & Keys.KeyCode))
             {
                 _hideLabel = false;
-                Invalidate();
-            }
-            else if (e.KeyCode == Keys.C)
-            {
                 Invalidate();
             }
         }

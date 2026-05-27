@@ -87,10 +87,38 @@ namespace LabelPlus
             try
             {
                 UndoRedoManager.labelCommandPool.Clear();
-                if (index != combo.Items.Count - 1)
+                if (index >= 0 && index < combo.Items.Count)
                     combo.SelectedIndex = index;
             }
             catch { }
+        }
+
+        public bool SelectLabel(string targetFileName, int targetItemIndex, int textSelectionStart = -1, int textSelectionLength = 0)
+        {
+            try
+            {
+                int fileIndex = combo.FindStringExact(targetFileName);
+                if (fileIndex == -1)
+                    return false;
+
+                if (combo.SelectedIndex != fileIndex)
+                    combo.SelectedIndex = fileIndex;
+
+                listviewapt.SelectedIndex = targetItemIndex;
+
+                if (textSelectionStart >= 0 && textSelectionStart <= textbox.TextLength)
+                {
+                    textbox.Focus();
+                    textbox.SelectionStart = textSelectionStart;
+                    textbox.SelectionLength = Math.Min(textSelectionLength, textbox.TextLength - textSelectionStart);
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public void NewFile()
@@ -216,19 +244,9 @@ namespace LabelPlus
 
         private void picView_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
-            if (e.KeyCode >= Keys.D1 && e.KeyCode <= Keys.D2)
-            {
-                int index = e.KeyCode - Keys.D1;
-                if (index <= wsp.GroupDefine.UserGroupCount)
-                {
-                    //groupIndex = index;
-                }
-            }
-            else if (e.KeyCode == Keys.Left)
+            if (ShortcutManager.Matches(ShortcutManager.PageLeft, e))
                 page_left();
-            else if (e.KeyCode == Keys.Right)
-                page_right();
-            else if (e.KeyCode == Keys.Tab)
+            else if (ShortcutManager.Matches(ShortcutManager.PageRight, e))
                 page_right();
         }
 
@@ -251,23 +269,22 @@ namespace LabelPlus
             //    modebuttons.SelectedButtonIndex = 3;
             //}
             //else
-            if (e.KeyCode == Keys.A)
+            if (ShortcutManager.Matches(ShortcutManager.QuickText, e))
             {
                 var filter = new ContextMenuOutsideClickFilter(menuquicktext);
                 Application.AddMessageFilter(filter);
                 menuquicktext.Show(Control.MousePosition);
                 e.SuppressKeyPress = true;
             }
-            if (e.Control)
+            if (ShortcutManager.Matches(ShortcutManager.UndoLabel, e))
             {
-                if (e.KeyCode == Keys.Z)
-                {
-                    UndoRedoManager.UndoLabel();
-                }
-                else if (e.KeyCode == Keys.Y)
-                {
-                    UndoRedoManager.RedoLabel();
-                }
+                UndoRedoManager.UndoLabel();
+                e.SuppressKeyPress = true;
+            }
+            else if (ShortcutManager.Matches(ShortcutManager.RedoLabel, e))
+            {
+                UndoRedoManager.RedoLabel();
+                e.SuppressKeyPress = true;
             }
         }
 
@@ -380,71 +397,42 @@ namespace LabelPlus
 
         private void textbox_KeyDown(object sender, KeyEventArgs e)
         {
-            if(e.KeyCode == Keys.Tab)
+            if (ShortcutManager.Matches(ShortcutManager.LabelNext, e))
             {
-                //tab
                 listviewapt.SelectedIndex++;
                 e.SuppressKeyPress = true;
-                return;
+                e.Handled = true;
+            }
+            else if (ShortcutManager.Matches(ShortcutManager.LabelPrevious, e))
+            {
+                listviewapt.SelectedIndex--;
+                e.SuppressKeyPress = true;
+            }
+            else if (ShortcutManager.Matches(ShortcutManager.PageLeft, e))
+            {
+                page_left();
+                e.SuppressKeyPress = true;
+            }
+            else if (ShortcutManager.Matches(ShortcutManager.PageRight, e))
+            {
+                page_right();
+                e.SuppressKeyPress = true;
             }
 
-            if (e.Control)
+            if (ShortcutManager.Matches(ShortcutManager.QuickText, e))
             {
-                if (e.KeyCode == Keys.Enter)
-                {
-                    //Ctrl+enter
-                    e.SuppressKeyPress = true;
-                    e.Handled = true;
-                }
-                else if (e.KeyCode == Keys.Up)
-                {
-                    //Ctrl+up
-                    listviewapt.SelectedIndex--;
-                }
-                else if (e.KeyCode == Keys.Down)
-                {
-                    //Ctrl+down
-                    listviewapt.SelectedIndex++;
-                }
-                else if (e.KeyCode == Keys.Left)
-                {
-                    //Ctrl+left
-                    page_left();
-                }
-                else if (e.KeyCode == Keys.Right)
-                {
-                    //Ctrl+right
-                    page_right();
-                }
-            }
-
-            if (e.Alt)
-            {
-                if (e.KeyCode == Keys.A)
-                {
-                    //Alt+A
-                    var filter = new ContextMenuOutsideClickFilter(menuquicktext);
-                    Application.AddMessageFilter(filter);
-                    menuquicktext.Show(textbox, textbox.Location);
-                    e.SuppressKeyPress = true;
-                }
+                var filter = new ContextMenuOutsideClickFilter(menuquicktext);
+                Application.AddMessageFilter(filter);
+                menuquicktext.Show(textbox, textbox.Location);
+                e.SuppressKeyPress = true;
             }
         }
 
         private void textboxPreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
-            if (e.Control)
+            if (ShortcutManager.Matches(ShortcutManager.LabelNext, e))
             {
-                if (e.KeyCode == Keys.Enter)
-                {
-                    //Ctrl+enter
-                    try
-                    {
-                        listviewapt.SelectedIndex++;
-                    }
-                    catch { }
-                    e.IsInputKey = true;
-                }
+                e.IsInputKey = true;
             }
         }
         private void textbox_TextChanged(object sender, EventArgs e)

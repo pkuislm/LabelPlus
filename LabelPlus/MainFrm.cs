@@ -38,6 +38,10 @@ namespace LabelPlus
         APIManager apiManager = new APIManager();
         MoetranDownloader moetranDownloader;
         MoetranUploader moetranUploader;
+        SearchReplaceForm searchReplaceForm;
+        ToolStripMenuItem toolsToolStripMenuItem;
+        ToolStripMenuItem searchReplaceToolStripMenuItem;
+        ToolStripMenuItem shortcutSettingsToolStripMenuItem;
 
         #endregion
 
@@ -99,6 +103,7 @@ namespace LabelPlus
             wsp.NewFile();
 
             this.Text = FROM_TITLE;
+            UpdateShortcutTexts();
         }
 
         private void MainFrm_FormClosing(object sender, FormClosingEventArgs e)
@@ -342,6 +347,7 @@ namespace LabelPlus
             InitializeComponent();
 
             Language.InitFormLanguage(this, StringResources.GetValue("lang"));
+            InitToolsMenu();
 
             //ToolStripButtonGroup modeBtnGroup = new ToolStripButtonGroup(toolStrip);
             //modeBtnGroup.AddButton(toolStripButton_BrowseMode);
@@ -376,6 +382,7 @@ namespace LabelPlus
             SetFont(new Font(GlobalVar.FontName, GlobalVar.FontSize, (FontStyle)GlobalVar.FontStyle));
 
             SetVisualWhenIndexChanged(GlobalVar.SetVisualWhenIndexChanged);
+            UpdateShortcutTexts();
         }
         #endregion
 
@@ -425,7 +432,7 @@ namespace LabelPlus
 
         private void picView_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
-            if (e.KeyCode == Keys.T)
+            if (ShortcutManager.Matches(ShortcutManager.HideWindow, e))
             {
                 toolStripButton_HideWindow_Click(this, null);
             }
@@ -433,10 +440,99 @@ namespace LabelPlus
 
         private void MainFrm_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.S && e.Modifiers == Keys.Control)
+            if (TryRunShortcut(e))
+                return;
+        }
+
+        private bool TryRunShortcut(KeyEventArgs e)
+        {
+            if (ShortcutManager.Matches(ShortcutManager.NewFile, e))
+                newToolStripMenuItem_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.OpenFile, e))
+                openToolStripMenuItem_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.SaveFile, e))
+                saveSToolStripMenuItem_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.SaveAs, e))
+                saveAsDToolStripMenuItem_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.ImageManager, e))
+                imageToolStripMenuItem_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.SearchReplace, e))
+                ShowSearchReplaceForm();
+            else if (ShortcutManager.Matches(ShortcutManager.ShortcutSettings, e))
+                ShowShortcutSettingsForm();
+            else if (ShortcutManager.Matches(ShortcutManager.HideWindow, e))
+                toolStripButton_HideWindow_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.FontLarger, e))
+                toolStripButton_EditBig_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.FontSmaller, e))
+                toolStripButton_EditSmall_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.FontDialog, e))
+                toolStripButton1_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.ToggleFollow, e))
+                toolStripButton2_Click(this, EventArgs.Empty);
+            else if (ShortcutManager.Matches(ShortcutManager.PageLeft, e))
+                wsp_control_apt.page_left();
+            else if (ShortcutManager.Matches(ShortcutManager.PageRight, e))
+                wsp_control_apt.page_right();
+            else
+                return false;
+
+            e.SuppressKeyPress = true;
+            e.Handled = true;
+            return true;
+        }
+
+        private void InitToolsMenu()
+        {
+            toolsToolStripMenuItem = new ToolStripMenuItem("工具(&T)");
+            searchReplaceToolStripMenuItem = new ToolStripMenuItem("搜索/替换(&F)");
+            shortcutSettingsToolStripMenuItem = new ToolStripMenuItem("快捷键设置(&K)");
+
+            searchReplaceToolStripMenuItem.Click += delegate { ShowSearchReplaceForm(); };
+            shortcutSettingsToolStripMenuItem.Click += delegate { ShowShortcutSettingsForm(); };
+
+            toolsToolStripMenuItem.DropDownItems.Add(searchReplaceToolStripMenuItem);
+            toolsToolStripMenuItem.DropDownItems.Add(shortcutSettingsToolStripMenuItem);
+
+            int insertIndex = Math.Max(0, menuStrip1.Items.Count - 1);
+            menuStrip1.Items.Insert(insertIndex, toolsToolStripMenuItem);
+        }
+
+        private void ShowSearchReplaceForm()
+        {
+            if (searchReplaceForm == null || searchReplaceForm.IsDisposed)
+                searchReplaceForm = new SearchReplaceForm(wsp, wsp_control_apt);
+
+            searchReplaceForm.Show(this);
+            searchReplaceForm.Activate();
+        }
+
+        private void ShowShortcutSettingsForm()
+        {
+            using (var form = new ShortcutSettingsForm())
             {
-                saveSToolStripMenuItem_Click(sender, new EventArgs());
+                if (form.ShowDialog(this) == DialogResult.OK)
+                    UpdateShortcutTexts();
             }
+        }
+
+        private void UpdateShortcutTexts()
+        {
+            saveProjectSToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.SaveFile);
+            newToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.NewFile);
+            openToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.OpenFile);
+            saveAsDToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.SaveAs);
+            imageToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.ImageManager);
+
+            if (searchReplaceToolStripMenuItem != null)
+                searchReplaceToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.SearchReplace);
+            if (shortcutSettingsToolStripMenuItem != null)
+                shortcutSettingsToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.ShortcutSettings);
+
+            toolStripButton_HideWindow.ToolTipText = "隐藏窗口 (" + ShortcutManager.GetText(ShortcutManager.HideWindow) + ")";
+            labelCtrlEnterTip.Text = "切换条目(" + ShortcutManager.GetText(ShortcutManager.LabelNext) + ","
+                + ShortcutManager.GetText(ShortcutManager.LabelPrevious) + "),快捷短语("
+                + ShortcutManager.GetText(ShortcutManager.QuickText) + ")";
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)

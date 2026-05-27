@@ -101,6 +101,8 @@ namespace LabelPlus
             FontSize = Convert.ToSingle(doc.SelectSingleNode("AppConfig/Font/Size").InnerText);
             FontStyle = Convert.ToInt32(doc.SelectSingleNode("AppConfig/Font/Style").InnerText);
             SetVisualWhenIndexChanged = Convert.ToBoolean(doc.SelectSingleNode("AppConfig/SetVisualWhenIndexChanged").InnerText);
+
+            ShortcutManager.Load(doc);
         }
 
         public static void Save()
@@ -113,6 +115,8 @@ namespace LabelPlus
             doc.SelectSingleNode("AppConfig/Font/Size").InnerText = FontSize.ToString();
             doc.SelectSingleNode("AppConfig/Font/Style").InnerText = FontStyle.ToString();
             doc.SelectSingleNode("AppConfig/SetVisualWhenIndexChanged").InnerText = SetVisualWhenIndexChanged.ToString();
+
+            ShortcutManager.Save(doc);
 
             using (XmlWriter wr = XmlWriter.Create(
                 @"labelplus_config.xml",

@@ -171,15 +171,21 @@ namespace LabelPlus
 
         void dgvKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode >= Keys.D1 && e.KeyCode <= Keys.D9)
+            for (int category = 1; category <= 9; category++)
             {
-                onSetCategory(e.KeyCode - Keys.D1 + 1);
+                if (ShortcutManager.Matches(ShortcutManager.CategoryId(category), e))
+                {
+                    onSetCategory(category);
+                    e.SuppressKeyPress = true;
+                    return;
+                }
             }
-            else if (e.KeyCode == Keys.Delete)
+
+            if (ShortcutManager.Matches(ShortcutManager.DeleteSelectedLabels, e))
             {
                 onDelItems();
+                e.SuppressKeyPress = true;
             }
-            e.SuppressKeyPress = true;
         }
 
         void dgvMouseClick(object sender, MouseEventArgs e)

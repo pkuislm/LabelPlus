@@ -162,6 +162,13 @@
     <Compile Include="SearchReplaceForm.Designer.cs">
       <DependentUpon>SearchReplaceForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="ShortcutManager.cs" />
+    <Compile Include="ShortcutSettingsForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ShortcutSettingsForm.Designer.cs">
+      <DependentUpon>ShortcutSettingsForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="StringResources.cs" />
     <Compile Include="LangComboxAdaptor.cs" />
     <Compile Include="Language.cs" />
@@ -218,6 +225,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="SearchReplaceForm.resx">
       <DependentUpon>SearchReplaceForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ShortcutSettingsForm.resx">
+      <DependentUpon>ShortcutSettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
