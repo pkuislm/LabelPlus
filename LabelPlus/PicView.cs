@@ -96,6 +96,7 @@ namespace LabelPlus
                     if (value != null)
                         Zoom = (float)(this.ClientSize.Width) / _sourceImage.Width;//首次运行 设定缩放值
                 }
+                ClampViewOffset();
                 Invalidate();
             }
         }
@@ -125,6 +126,7 @@ namespace LabelPlus
                     return;
                 _zoom = newZoom;
 
+                ClampViewOffset();
                 Invalidate();
                 OnZoomChanged();
             }
@@ -306,6 +308,7 @@ namespace LabelPlus
 
         private void PicView_Resize(object sender, EventArgs e)
         {
+            ClampViewOffset();
             Invalidate();
         }
         private void PicView_Load(object sender, EventArgs e)
@@ -407,6 +410,7 @@ namespace LabelPlus
 
             _viewOffset.X += deltaX;
             _viewOffset.Y += deltaY;
+            ClampViewOffset();
 
             _lastMousePos = e.Location;
             Invalidate();
@@ -423,12 +427,14 @@ namespace LabelPlus
             if (Control.ModifierKeys == Keys.Control)
             {
                 _viewOffset.X -= e.Delta / _zoom;
+                ClampViewOffset();
                 Invalidate();
                 return;
             }
             if (Control.ModifierKeys == Keys.Alt)
             {
                 _viewOffset.Y -= e.Delta / _zoom;
+                ClampViewOffset();
                 Invalidate();
                 return;
             }
@@ -451,9 +457,29 @@ namespace LabelPlus
             // 3. 计算新的 ViewOffset
             _viewOffset.X = e.X - mouseX_rel * ratio;
             _viewOffset.Y = e.Y - mouseY_rel * ratio;
+            ClampViewOffset();
 
             Invalidate();
             OnZoomChanged();
+        }
+
+        private void ClampViewOffset()
+        {
+            if (_sourceImage == null || _zoom <= 0 || Width <= 0 || Height <= 0)
+                return;
+
+            float imageWidth = _sourceImage.Width * _zoom;
+            float imageHeight = _sourceImage.Height * _zoom;
+            float minVisibleWidth = Math.Min(imageWidth, Math.Max(20f, imageWidth * 0.1f));
+            float minVisibleHeight = Math.Min(imageHeight, Math.Max(20f, imageHeight * 0.1f));
+
+            float minX = minVisibleWidth - imageWidth;
+            float maxX = Width - minVisibleWidth;
+            float minY = minVisibleHeight - imageHeight;
+            float maxY = Height - minVisibleHeight;
+
+            _viewOffset.X = Clamp(_viewOffset.X, minX, maxX);
+            _viewOffset.Y = Clamp(_viewOffset.Y, minY, maxY);
         }
 
         #endregion
@@ -579,6 +605,7 @@ namespace LabelPlus
             float newOffsetY = screenCenterY - (label.Y_percent * _sourceImage.Height * _zoom);
 
             _viewOffset = new PointF(newOffsetX, newOffsetY);
+            ClampViewOffset();
             Invalidate();
         }
 
