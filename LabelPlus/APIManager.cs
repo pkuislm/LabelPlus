@@ -167,7 +167,7 @@ namespace LabelPlus
             }
 
             var error = DeserializeJson<ErrorResponse>(text);
-            var message = error?.message?.FirstOrDefault().Value?[0] ?? "Unknown error";
+            var message = error?.message ?? "Unknown error";
 
             throw new ApiException(message, error, response.StatusCode);
         }
@@ -189,7 +189,7 @@ namespace LabelPlus
                 return DeserializeJson<T>(text);
             }
             var error = DeserializeJson<ErrorResponse>(text);
-            var message = error?.message?.FirstOrDefault().Value?[0] ?? "Unknown error";
+            var message = error?.message ?? "Unknown error";
             throw new ApiException(message, error, response.StatusCode);
         }
 
@@ -344,7 +344,7 @@ namespace LabelPlus
         {
             public int code { get; set; }
             public string error { get; set; }
-            public Dictionary<string, string[]> message { get; set; }
+            public string message { get; set; }
         }
 
         public T DeserializeJson<T>(string jsonString)

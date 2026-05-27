@@ -242,6 +242,7 @@
             this.MinimumSize = new System.Drawing.Size(616, 275);
             this.Name = "SearchReplaceForm";
             this.Text = "SearchReplaceForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.flowLayoutPanel1.ResumeLayout(false);

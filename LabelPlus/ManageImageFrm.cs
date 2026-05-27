@@ -52,8 +52,10 @@ namespace LabelPlus
 
         private void addFolderFilesToList()
         {
-            string[] extension_list = new string[] { ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" };
+            string[] extension_list = new string[] { ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp" };
             string[] filenames = Directory.GetFiles(wsp.DirPath);
+
+            Array.Sort(filenames, LabelFileManager.StrCmpLogicalW);
 
             foreach (string filename in filenames)
             {

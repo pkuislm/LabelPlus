@@ -58,7 +58,6 @@
             this.listBoxFolderFile.Name = "listBoxFolderFile";
             this.listBoxFolderFile.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
             this.listBoxFolderFile.Size = new System.Drawing.Size(207, 208);
-            this.listBoxFolderFile.Sorted = true;
             this.listBoxFolderFile.TabIndex = 1;
             // 
             // buttonAdd
@@ -119,7 +118,6 @@
             this.listBoxIncludedFile.Name = "listBoxIncludedFile";
             this.listBoxIncludedFile.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
             this.listBoxIncludedFile.Size = new System.Drawing.Size(207, 208);
-            this.listBoxIncludedFile.Sorted = true;
             this.listBoxIncludedFile.TabIndex = 2;
             // 
             // labelFolderFile

@@ -77,7 +77,10 @@
             this.CGroup = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.TextBox_GroupBox = new System.Windows.Forms.GroupBox();
             this.contextMenuStripQuickText = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.translateTextBoxBottomPanel = new System.Windows.Forms.TableLayoutPanel();
             this.labelCtrlEnterTip = new System.Windows.Forms.Label();
+            this.buttonToFullWidth = new System.Windows.Forms.Button();
+            this.buttonToHalfWidth = new System.Windows.Forms.Button();
             this.TranslateTextBox = new System.Windows.Forms.TextBox();
             this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog = new System.Windows.Forms.SaveFileDialog();
@@ -101,6 +104,7 @@
             this.toolStripLabels.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             this.TextBox_GroupBox.SuspendLayout();
+            this.translateTextBoxBottomPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -555,7 +559,7 @@
             // 
             this.TextBox_GroupBox.BackColor = System.Drawing.SystemColors.Window;
             this.TextBox_GroupBox.ContextMenuStrip = this.contextMenuStripQuickText;
-            this.TextBox_GroupBox.Controls.Add(this.labelCtrlEnterTip);
+            this.TextBox_GroupBox.Controls.Add(this.translateTextBoxBottomPanel);
             this.TextBox_GroupBox.Controls.Add(this.TranslateTextBox);
             this.TextBox_GroupBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.TextBox_GroupBox.Font = new System.Drawing.Font("宋体", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
@@ -573,17 +577,60 @@
             this.contextMenuStripQuickText.Name = "contextMenuStripQuickText";
             this.contextMenuStripQuickText.Size = new System.Drawing.Size(61, 4);
             // 
+            // translateTextBoxBottomPanel
+            // 
+            this.translateTextBoxBottomPanel.ColumnCount = 3;
+            this.translateTextBoxBottomPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.translateTextBoxBottomPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 32F));
+            this.translateTextBoxBottomPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 32F));
+            this.translateTextBoxBottomPanel.Controls.Add(this.labelCtrlEnterTip, 0, 0);
+            this.translateTextBoxBottomPanel.Controls.Add(this.buttonToFullWidth, 1, 0);
+            this.translateTextBoxBottomPanel.Controls.Add(this.buttonToHalfWidth, 2, 0);
+            this.translateTextBoxBottomPanel.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.translateTextBoxBottomPanel.Location = new System.Drawing.Point(3, 277);
+            this.translateTextBoxBottomPanel.Name = "translateTextBoxBottomPanel";
+            this.translateTextBoxBottomPanel.RowCount = 1;
+            this.translateTextBoxBottomPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.translateTextBoxBottomPanel.Size = new System.Drawing.Size(440, 24);
+            this.translateTextBoxBottomPanel.TabIndex = 7;
+            // 
             // labelCtrlEnterTip
             // 
-            this.labelCtrlEnterTip.AutoSize = true;
             this.labelCtrlEnterTip.BackColor = System.Drawing.SystemColors.Window;
-            this.labelCtrlEnterTip.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.labelCtrlEnterTip.Dock = System.Windows.Forms.DockStyle.Fill;
             this.labelCtrlEnterTip.Font = new System.Drawing.Font("宋体", 10F);
-            this.labelCtrlEnterTip.Location = new System.Drawing.Point(3, 287);
+            this.labelCtrlEnterTip.Location = new System.Drawing.Point(3, 0);
             this.labelCtrlEnterTip.Name = "labelCtrlEnterTip";
-            this.labelCtrlEnterTip.Size = new System.Drawing.Size(77, 14);
+            this.labelCtrlEnterTip.Size = new System.Drawing.Size(370, 24);
             this.labelCtrlEnterTip.TabIndex = 6;
             this.labelCtrlEnterTip.Text = "快捷键提示";
+            this.labelCtrlEnterTip.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // buttonToFullWidth
+            // 
+            this.buttonToFullWidth.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.buttonToFullWidth.Font = new System.Drawing.Font("宋体", 9F);
+            this.buttonToFullWidth.Location = new System.Drawing.Point(379, 1);
+            this.buttonToFullWidth.Margin = new System.Windows.Forms.Padding(3, 1, 1, 1);
+            this.buttonToFullWidth.Name = "buttonToFullWidth";
+            this.buttonToFullWidth.Size = new System.Drawing.Size(28, 22);
+            this.buttonToFullWidth.TabIndex = 7;
+            this.buttonToFullWidth.Text = "全";
+            this.buttonToFullWidth.UseVisualStyleBackColor = true;
+            this.buttonToFullWidth.Click += new System.EventHandler(this.buttonToFullWidth_Click);
+            // 
+            // buttonToHalfWidth
+            // 
+            this.buttonToHalfWidth.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.buttonToHalfWidth.Font = new System.Drawing.Font("宋体", 9F);
+            this.buttonToHalfWidth.Location = new System.Drawing.Point(409, 1);
+            this.buttonToHalfWidth.Margin = new System.Windows.Forms.Padding(1, 1, 0, 1);
+            this.buttonToHalfWidth.Name = "buttonToHalfWidth";
+            this.buttonToHalfWidth.Size = new System.Drawing.Size(31, 22);
+            this.buttonToHalfWidth.TabIndex = 8;
+            this.buttonToHalfWidth.Text = "半";
+            this.buttonToHalfWidth.UseVisualStyleBackColor = true;
+            this.buttonToHalfWidth.Click += new System.EventHandler(this.buttonToHalfWidth_Click);
             // 
             // TranslateTextBox
             // 
@@ -596,7 +643,7 @@
             this.TranslateTextBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this.TranslateTextBox.Multiline = true;
             this.TranslateTextBox.Name = "TranslateTextBox";
-            this.TranslateTextBox.Size = new System.Drawing.Size(440, 279);
+            this.TranslateTextBox.Size = new System.Drawing.Size(440, 255);
             this.TranslateTextBox.TabIndex = 5;
             // 
             // openFileDialog
@@ -673,8 +720,8 @@
             this.toolStripLabels.ResumeLayout(false);
             this.toolStripLabels.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
+            this.translateTextBoxBottomPanel.ResumeLayout(false);
             this.TextBox_GroupBox.ResumeLayout(false);
-            this.TextBox_GroupBox.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -703,6 +750,9 @@
         private System.Windows.Forms.ToolStripMenuItem imageToolStripMenuItem;
         private System.Windows.Forms.Timer timerAutoSave;
         private System.Windows.Forms.Label labelCtrlEnterTip;
+        private System.Windows.Forms.TableLayoutPanel translateTextBoxBottomPanel;
+        private System.Windows.Forms.Button buttonToFullWidth;
+        private System.Windows.Forms.Button buttonToHalfWidth;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.ToolStripButton toolStripButton_HideWindow;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog;

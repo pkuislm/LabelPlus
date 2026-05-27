@@ -8,8 +8,11 @@
 
 #region Using Directives
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
@@ -167,7 +170,7 @@ namespace LabelPlus
             this.Text = FROM_TITLE + new FileInfo(filePath).Name;
 
             wsp_control_apt.page_right();
-            toolStripComboBox_File.DroppedDown = true;
+            //toolStripComboBox_File.DroppedDown = true;
         }
 
         private void openToolStripMenuItem_Click(object sender, EventArgs e)
@@ -503,7 +506,12 @@ namespace LabelPlus
             if (searchReplaceForm == null || searchReplaceForm.IsDisposed)
                 searchReplaceForm = new SearchReplaceForm(wsp, wsp_control_apt);
 
-            searchReplaceForm.Show(this);
+            if (!searchReplaceForm.Visible)
+                searchReplaceForm.Show(this);
+
+            if (searchReplaceForm.WindowState == FormWindowState.Minimized)
+                searchReplaceForm.WindowState = FormWindowState.Normal;
+
             searchReplaceForm.Activate();
         }
 
@@ -533,6 +541,34 @@ namespace LabelPlus
             labelCtrlEnterTip.Text = "切换条目(" + ShortcutManager.GetText(ShortcutManager.LabelNext) + ","
                 + ShortcutManager.GetText(ShortcutManager.LabelPrevious) + "),快捷短语("
                 + ShortcutManager.GetText(ShortcutManager.QuickText) + ")";
+        }
+
+        private void buttonToFullWidth_Click(object sender, EventArgs e)
+        {
+            ConvertTranslateTextSymbols(ChinesePunctuationConverter.ConvertSymbolToFullWidth);
+        }
+
+        private void buttonToHalfWidth_Click(object sender, EventArgs e)
+        {
+            ConvertTranslateTextSymbols(ChinesePunctuationConverter.ConvertSymbolToHalfWidth);
+        }
+
+        private void ConvertTranslateTextSymbols(Func<char, char> converter)
+        {
+            int selectionStart = TranslateTextBox.SelectionStart;
+            int selectionLength = TranslateTextBox.SelectionLength;
+            char[] chars = TranslateTextBox.Text.ToCharArray();
+
+            for (int i = 0; i < chars.Length; i++)
+                chars[i] = converter(chars[i]);
+
+            string convertedText = new string(chars);
+            if (convertedText != TranslateTextBox.Text)
+                TranslateTextBox.Text = convertedText;
+
+            TranslateTextBox.SelectionStart = Math.Min(selectionStart, TranslateTextBox.TextLength);
+            TranslateTextBox.SelectionLength = Math.Min(selectionLength, TranslateTextBox.TextLength - TranslateTextBox.SelectionStart);
+            TranslateTextBox.Focus();
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)

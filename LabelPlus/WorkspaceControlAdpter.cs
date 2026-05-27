@@ -33,6 +33,8 @@ namespace LabelPlus
         APIManager apiManager;
         Workspace wsp;
         int groupIndex = 0;
+        Control quickTextTarget;
+        IMessageFilter quickTextShortcutFilter;
 
         enum WorkMode
         {
@@ -45,6 +47,7 @@ namespace LabelPlus
         WorkMode workMode;
         int itemIndex = -1;
         string fileName = "";
+        bool suppressSetVisualWhenIndexChanged = true;
 
         Point picViewMousePosition;
 
@@ -67,6 +70,13 @@ namespace LabelPlus
                 UndoRedoManager.labelCommandPool.Clear();
                 if (combo.SelectedIndex != 0)
                     combo.SelectedIndex--;
+                if (wsp.setVisualWhenIndexChanged)
+                {
+                    suppressSetVisualWhenIndexChanged = true;
+                    listviewapt.SelectedIndex = 0;
+                    suppressSetVisualWhenIndexChanged = false;
+                }
+                
             }
             catch { }
         }
@@ -78,6 +88,12 @@ namespace LabelPlus
                 if (combo.SelectedIndex !=
                     combo.Items.Count - 1)
                     combo.SelectedIndex++;
+                if (wsp.setVisualWhenIndexChanged)
+                {
+                    suppressSetVisualWhenIndexChanged = true;
+                    listviewapt.SelectedIndex = 0;
+                    suppressSetVisualWhenIndexChanged = false;
+                }
             }
             catch { }
         }
@@ -89,6 +105,12 @@ namespace LabelPlus
                 UndoRedoManager.labelCommandPool.Clear();
                 if (index >= 0 && index < combo.Items.Count)
                     combo.SelectedIndex = index;
+                if (wsp.setVisualWhenIndexChanged)
+                {
+                    suppressSetVisualWhenIndexChanged = true;
+                    listviewapt.SelectedIndex = 0;
+                    suppressSetVisualWhenIndexChanged = false;
+                }
             }
             catch { }
         }
@@ -242,14 +264,6 @@ namespace LabelPlus
             listviewapt.SelectedIndex = -1;
         }
 
-        private void picView_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
-        {
-            if (ShortcutManager.Matches(ShortcutManager.PageLeft, e))
-                page_left();
-            else if (ShortcutManager.Matches(ShortcutManager.PageRight, e))
-                page_right();
-        }
-
         private void picViewKeyDown(object sender, KeyEventArgs e)
         {
             //if (e.KeyCode == Keys.Q)
@@ -269,13 +283,6 @@ namespace LabelPlus
             //    modebuttons.SelectedButtonIndex = 3;
             //}
             //else
-            if (ShortcutManager.Matches(ShortcutManager.QuickText, e))
-            {
-                var filter = new ContextMenuOutsideClickFilter(menuquicktext);
-                Application.AddMessageFilter(filter);
-                menuquicktext.Show(Control.MousePosition);
-                e.SuppressKeyPress = true;
-            }
             if (ShortcutManager.Matches(ShortcutManager.UndoLabel, e))
             {
                 UndoRedoManager.UndoLabel();
@@ -309,9 +316,10 @@ namespace LabelPlus
                         return;
 
                     textbox.Focus();
+
                     if(sender != null)
                         picview.SetLabelVisual(listviewapt.SelectedIndex);
-                    if (wsp.setVisualWhenIndexChanged)
+                    if (!suppressSetVisualWhenIndexChanged && wsp.setVisualWhenIndexChanged)
                     {
                         if (picview.Focused)
                             return;
@@ -373,6 +381,7 @@ namespace LabelPlus
                 var keys = wsp.Store.Filenames;
                 if (keys != null)
                 {
+                    Array.Sort(keys, LabelFileManager.StrCmpLogicalW);
                     foreach (string name in keys)
                     {
                         combo.Items.Add(name);
@@ -386,10 +395,6 @@ namespace LabelPlus
                 {
                     combo.SelectedIndex = n;
                 }
-                else
-                {
-                    combo.SelectedIndex = 0;
-                }
 
             }
             catch { }
@@ -397,6 +402,7 @@ namespace LabelPlus
 
         private void textbox_KeyDown(object sender, KeyEventArgs e)
         {
+            suppressSetVisualWhenIndexChanged = false;
             if (ShortcutManager.Matches(ShortcutManager.LabelNext, e))
             {
                 listviewapt.SelectedIndex++;
@@ -423,9 +429,31 @@ namespace LabelPlus
             {
                 var filter = new ContextMenuOutsideClickFilter(menuquicktext);
                 Application.AddMessageFilter(filter);
-                menuquicktext.Show(textbox, textbox.Location);
+                quickTextTarget = textbox;
+                menuquicktext.Show(
+                    textbox,
+                    GetQuickTextMenuLocation(),
+                    ToolStripDropDownDirection.BelowRight);
                 e.SuppressKeyPress = true;
             }
+            suppressSetVisualWhenIndexChanged = true;
+        }
+
+        private Point GetQuickTextMenuLocation()
+        {
+            int charIndex = textbox.TextLength;
+            int lineIndex = textbox.GetLineFromCharIndex(charIndex);
+            int firstCharIndex = textbox.GetFirstCharIndexFromLine(lineIndex);
+
+            if (firstCharIndex < 0)
+                firstCharIndex = 0;
+
+            Point lineStart = textbox.GetPositionFromCharIndex(firstCharIndex);
+            int padding = 4;
+            int x = textbox.ClientSize.Width - menuquicktext.GetPreferredSize(Size.Empty).Width - padding;
+            int y = lineStart.Y + textbox.Font.Height + 2;
+
+            return new Point(Math.Max(padding, x), y);
         }
 
         private void textboxPreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
@@ -524,36 +552,100 @@ namespace LabelPlus
 
         private void quickTextItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
-            if (textbox.Focused)
-                textbox.AppendText(e.ClickedItem.ToolTipText);
+            InsertQuickText(e.ClickedItem.ToolTipText);
+        }
 
-            if (picview.Focused)
-            {
-                //百分比坐标转换
-                PointF poi = picview.ClientToPercentPoint(picViewMousePosition);
-                if (poi.X >= 1.0f || poi.X <= 0 || poi.Y >= 1.0f || poi.Y <= 0)
-                    return;
+        private void InsertQuickText(string text)
+        {
+            if (quickTextTarget != textbox && !textbox.Focused)
+                return;
 
-                wsp.Store.AddLabelItem(FileName,
-                    new LabelItem(
-                        poi.X,
-                        poi.Y,
-                        e.ClickedItem.ToolTipText,
-                        groupIndex + 1),
-                    listviewapt.Count);
-
-                listviewapt.SelectedIndex = listviewapt.Count - 1;
-            }
+            textbox.AppendText(text);
         }
 
         private void quickTextClosed(object sender, ToolStripDropDownClosedEventArgs e)
         {
+            if (quickTextShortcutFilter != null)
+            {
+                Application.RemoveMessageFilter(quickTextShortcutFilter);
+                quickTextShortcutFilter = null;
+            }
+
+            quickTextTarget = null;
             textbox.ImeMode = ImeMode.NoControl;
         }
 
         private void quickTextOpened(object sender, EventArgs e)
         {
+            if (quickTextShortcutFilter != null)
+                Application.RemoveMessageFilter(quickTextShortcutFilter);
+
+            quickTextShortcutFilter = new QuickTextShortcutFilter(
+                menuquicktext,
+                GlobalVar.QuickTextItems,
+                InsertQuickText);
+            Application.AddMessageFilter(quickTextShortcutFilter);
             textbox.ImeMode = ImeMode.Off;
+        }
+
+        private class QuickTextShortcutFilter : IMessageFilter
+        {
+            private const int WM_KEYDOWN = 0x0100;
+            private readonly ContextMenuStrip menu;
+            private readonly GlobalVar.QuickTextItem[] items;
+            private readonly Action<string> insertText;
+
+            public QuickTextShortcutFilter(
+                ContextMenuStrip menu,
+                GlobalVar.QuickTextItem[] items,
+                Action<string> insertText)
+            {
+                this.menu = menu;
+                this.items = items;
+                this.insertText = insertText;
+            }
+
+            public bool PreFilterMessage(ref Message m)
+            {
+                if (!menu.Visible || m.Msg != WM_KEYDOWN)
+                    return false;
+
+                Keys key = (Keys)((int)m.WParam & (int)Keys.KeyCode);
+                if (key == Keys.Escape)
+                {
+                    menu.Close();
+                    return true;
+                }
+
+                string keyText = GetKeyText(key);
+                if (string.IsNullOrEmpty(keyText))
+                    return false;
+
+                foreach (GlobalVar.QuickTextItem item in items)
+                {
+                    if (string.Equals(item.Key, keyText, StringComparison.OrdinalIgnoreCase))
+                    {
+                        insertText(item.Text);
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            private static string GetKeyText(Keys key)
+            {
+                if (key >= Keys.A && key <= Keys.Z)
+                    return key.ToString();
+
+                if (key >= Keys.D0 && key <= Keys.D9)
+                    return ((char)('0' + key - Keys.D0)).ToString();
+
+                if (key >= Keys.NumPad0 && key <= Keys.NumPad9)
+                    return ((char)('0' + key - Keys.NumPad0)).ToString();
+
+                return "";
+            }
         }
         #endregion
 
@@ -586,7 +678,6 @@ namespace LabelPlus
             picview.MouseMove += new MouseEventHandler(picView_MouseMove);
             picview.MouseClick += new MouseEventHandler(picView_MosueClick);
             picview.KeyDown += new KeyEventHandler(picViewKeyDown);
-            picview.PreviewKeyDown += new PreviewKeyDownEventHandler(picView_PreviewKeyDown);
 
             combo = FileSelectComboBox;
             combo.Items.Clear();

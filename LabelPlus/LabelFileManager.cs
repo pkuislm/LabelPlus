@@ -21,7 +21,7 @@ namespace LabelPlus
     {
 
         [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
-        private static extern int StrCmpLogicalW(string x, string y);
+        public static extern int StrCmpLogicalW(string x, string y);
 
         #region Const
         // 主次版本号
