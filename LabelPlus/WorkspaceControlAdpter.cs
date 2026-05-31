@@ -72,9 +72,8 @@ namespace LabelPlus
                     combo.SelectedIndex--;
                 if (wsp.setVisualWhenIndexChanged)
                 {
-                    suppressSetVisualWhenIndexChanged = true;
                     listviewapt.SelectedIndex = 0;
-                    suppressSetVisualWhenIndexChanged = false;
+                    picview.SetLabelVisual(listviewapt.SelectedIndex);
                 }
                 
             }
@@ -90,9 +89,8 @@ namespace LabelPlus
                     combo.SelectedIndex++;
                 if (wsp.setVisualWhenIndexChanged)
                 {
-                    suppressSetVisualWhenIndexChanged = true;
                     listviewapt.SelectedIndex = 0;
-                    suppressSetVisualWhenIndexChanged = false;
+                    picview.SetLabelVisual(listviewapt.SelectedIndex);
                 }
             }
             catch { }
@@ -107,9 +105,8 @@ namespace LabelPlus
                     combo.SelectedIndex = index;
                 if (wsp.setVisualWhenIndexChanged)
                 {
-                    suppressSetVisualWhenIndexChanged = true;
                     listviewapt.SelectedIndex = 0;
-                    suppressSetVisualWhenIndexChanged = false;
+                    picview.SetLabelVisual(listviewapt.SelectedIndex);
                 }
             }
             catch { }
@@ -319,14 +316,14 @@ namespace LabelPlus
 
                     if(sender != null)
                         picview.SetLabelVisual(listviewapt.SelectedIndex);
-                    if (!suppressSetVisualWhenIndexChanged && wsp.setVisualWhenIndexChanged)
-                    {
-                        if (picview.Focused)
-                            return;
-                        if (listviewapt.SelectedIndexCount > 1)
-                            return;
-                        picview.SetLabelVisual(listviewapt.SelectedIndex);
-                    }
+                    //if (!suppressSetVisualWhenIndexChanged && wsp.setVisualWhenIndexChanged)
+                    //{
+                    //    if (picview.Focused)
+                    //        return;
+                    //    if (listviewapt.SelectedIndexCount > 1)
+                    //        return;
+                    //    picview.SetLabelVisual(listviewapt.SelectedIndex);
+                    //}
                     //else if (workMode == WorkMode.Check)
                     //{
                     //    if (listviewapt.SelectedIndexCount > 1)
@@ -402,16 +399,23 @@ namespace LabelPlus
 
         private void textbox_KeyDown(object sender, KeyEventArgs e)
         {
-            suppressSetVisualWhenIndexChanged = false;
             if (ShortcutManager.Matches(ShortcutManager.LabelNext, e))
             {
                 listviewapt.SelectedIndex++;
+                if (wsp.setVisualWhenIndexChanged)
+                {
+                    picview.SetLabelVisual(listviewapt.SelectedIndex);
+                }
                 e.SuppressKeyPress = true;
                 e.Handled = true;
             }
             else if (ShortcutManager.Matches(ShortcutManager.LabelPrevious, e))
             {
                 listviewapt.SelectedIndex--;
+                if (wsp.setVisualWhenIndexChanged)
+                {
+                    picview.SetLabelVisual(listviewapt.SelectedIndex);
+                }
                 e.SuppressKeyPress = true;
             }
             else if (ShortcutManager.Matches(ShortcutManager.PageLeft, e))
@@ -436,7 +440,6 @@ namespace LabelPlus
                     ToolStripDropDownDirection.BelowRight);
                 e.SuppressKeyPress = true;
             }
-            suppressSetVisualWhenIndexChanged = true;
         }
 
         private Point GetQuickTextMenuLocation()

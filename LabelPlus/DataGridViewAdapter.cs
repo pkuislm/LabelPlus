@@ -63,7 +63,11 @@ namespace LabelPlus
             }
             set
             {
-                if (value >= 0 && value < dgv.Rows.Count)
+                if (dgv.Rows.Count == 0)
+                {
+                    SelectedIndexChanged?.Invoke(null, EventArgs.Empty);
+                }
+                else if (value >= 0 && value < dgv.Rows.Count)
                 {
                     selectionChangedEnable = false;
                     dgv.ClearSelection();
