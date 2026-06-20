@@ -655,7 +655,7 @@ namespace LabelPlus
             GroupBox TextBoxGroupBox,
             DataGridViewAdapter LabelListViewAPT,
             PicView picView,
-            ContextMenuStrip,
+            ContextMenuStrip contextMenuQuickText,
             ToolStrip toolStrip,
             Workspace workspace,
             APIManager apiManager)
