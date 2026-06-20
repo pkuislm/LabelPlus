@@ -21,6 +21,7 @@ namespace LabelPlus
 	static class QuickTextManager
 	{
 		public static QuickTextItem[] Items { get; private set; } = new QuickTextItem[0];
+		public static event EventHandler ItemsChanged;
 
 		public enum QuickTextStatus
 		{
@@ -38,7 +39,8 @@ namespace LabelPlus
 
 		public static void SetItems(QuickTextItem[] items)
 		{
-			Items = items;
+			Items = items ?? new QuickTextItem[0];
+			ItemsChanged?.Invoke(null, EventArgs.Empty);
 		}
 
 		public static void Load(XmlDocument doc)
@@ -59,7 +61,7 @@ namespace LabelPlus
 				itemsList.Add(new QuickTextItem(textAttr.Value, KeyFromText(keyAttr.Value)));
 			}
 
-			Items = itemsList.ToArray();
+			SetItems(itemsList.ToArray());
 		}
 
 		public static void Save(XmlDocument doc)

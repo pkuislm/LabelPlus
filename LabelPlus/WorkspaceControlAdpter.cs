@@ -552,6 +552,20 @@ namespace LabelPlus
             picview.Invalidate();
         }
 
+        private void RefreshQuickTextMenu()
+        {
+            menuquicktext.Items.Clear();
+            foreach (QuickTextItem item in QuickTextManager.Items)
+            {
+                string menuItemStr = item.Text + "(&" + QuickTextManager.KeyToText(item.Key) + ")";
+                menuquicktext.Items.Add(menuItemStr).ToolTipText = item.Text;
+            }
+        }
+
+        private void QuickTextItemsChanged(object sender, EventArgs e)
+        {
+            RefreshQuickTextMenu();
+        }
 
         private void quickTextItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
@@ -693,12 +707,8 @@ namespace LabelPlus
             listviewapt.UserSetCategory += new DataGridViewAdapter.UserActionEventHandler(listViewUserAction);
 
             menuquicktext = contextMenuQuickText;
-            foreach (QuickTextItem item in QuickTextManager.Items)
-            {
-                string menuItemStr = item.Text + "(&" + QuickTextManager.KeyToText(item.Key) + ")";
-                menuquicktext.Items.Add(menuItemStr).ToolTipText = item.Text;
-
-            }
+            RefreshQuickTextMenu();
+            QuickTextManager.ItemsChanged += new EventHandler(QuickTextItemsChanged);
             menuquicktext.ItemClicked += new ToolStripItemClickedEventHandler(quickTextItemClicked);
             menuquicktext.Opened += new EventHandler(quickTextOpened);
             menuquicktext.Closed += new ToolStripDropDownClosedEventHandler(quickTextClosed);
