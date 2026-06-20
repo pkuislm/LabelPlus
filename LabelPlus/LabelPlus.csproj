@@ -116,6 +116,13 @@
     <Compile Include="DownloadProgressForm.Designer.cs">
       <DependentUpon>DownloadProgressForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="QuickText\QuickTextFrm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="QuickText\QuickTextFrm.Designer.cs">
+      <DependentUpon>QuickTextFrm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="QuickText\QuickTextManager.cs" />
     <Compile Include="FolderPicker.cs" />
     <Compile Include="GlobalVar.cs" />
     <Compile Include="GroupDefineItem.cs" />
@@ -163,11 +170,11 @@
     <Compile Include="SearchReplaceForm.Designer.cs">
       <DependentUpon>SearchReplaceForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="ShortcutManager.cs" />
-    <Compile Include="ShortcutSettingsForm.cs">
+    <Compile Include="Shortcuts\ShortcutManager.cs" />
+    <Compile Include="Shortcuts\ShortcutSettingsForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="ShortcutSettingsForm.Designer.cs">
+    <Compile Include="Shortcuts\ShortcutSettingsForm.Designer.cs">
       <DependentUpon>ShortcutSettingsForm.cs</DependentUpon>
     </Compile>
     <Compile Include="StringResources.cs" />
@@ -197,6 +204,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="DownloadProgressForm.resx">
       <DependentUpon>DownloadProgressForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="QuickText\QuickTextFrm.resx">
+      <DependentUpon>QuickTextFrm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="GroupSettingFrm.resx">
       <DependentUpon>GroupSettingFrm.cs</DependentUpon>
@@ -228,7 +238,7 @@
     <EmbeddedResource Include="SearchReplaceForm.resx">
       <DependentUpon>SearchReplaceForm.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="ShortcutSettingsForm.resx">
+    <EmbeddedResource Include="Shortcuts\ShortcutSettingsForm.resx">
       <DependentUpon>ShortcutSettingsForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="Properties\app.manifest" />
