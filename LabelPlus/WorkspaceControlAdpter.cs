@@ -181,6 +181,9 @@ namespace LabelPlus
                     //del
                     DeleteLabelCommand(e);
                     break;
+                case PicView.LabelUserActionEventArgs.ActionType.middleClickToggleCategory:
+                    ToggleLabelCategory(e);
+                    break;
                 case PicView.LabelUserActionEventArgs.ActionType.labelChanged:
                     {
                         wsp.Store.ChangeLabelItem();
@@ -247,6 +250,18 @@ namespace LabelPlus
             DeleteLabelCommand deleteLabelCommand = new DeleteLabelCommand(DeleteLabel, AddLabel, label);
             UndoRedoManager.LabelCommandPool.Register(deleteLabelCommand);
             deleteLabelCommand.Excute();
+        }
+
+        private void ToggleLabelCategory(PicView.LabelUserActionEventArgs e)
+        {
+            if (e.Index == -1)
+                return;
+
+            int currentCategory = LabelFileManager.store[fileName][e.Index].Category;
+            int nextCategory = currentCategory == 1 ? 2 : 1;
+
+            if (wsp.Store.UpdateLabelCategory(fileName, e.Index, nextCategory))
+                listviewapt.SelectedIndex = e.Index;
         }
 
         private void AddLabel(LabelUndo label)
@@ -516,6 +531,9 @@ namespace LabelPlus
         {
             if (e.Button == MouseButtons.Middle)
             {
+                if (picview.GetLabelIndexAtClientPoint(e.Location) != -1)
+                    return;
+
                 //中键翻页
                 page_right();
             }

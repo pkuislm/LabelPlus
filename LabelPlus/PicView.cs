@@ -29,6 +29,7 @@ namespace LabelPlus
                 leftClick,
                 rightClickAdd,
                 rightClickDel,
+                middleClickToggleCategory,
                 mouseIndexChanged,
                 labelChanged
             }
@@ -620,6 +621,12 @@ namespace LabelPlus
             return -1;
         }
 
+        public int GetLabelIndexAtClientPoint(Point clientPoint)
+        {
+            if (_sourceImage == null) return -1;
+            return GetLabelIndexAt(ScreenToImage(clientPoint));
+        }
+
         void PicView_Label_MouseClick(object sender, MouseEventArgs e)
         {
             if (_sourceImage == null) return;
@@ -630,10 +637,11 @@ namespace LabelPlus
 
             float x_percent = imgPoint.X / _sourceImage.Width;
             float y_percent = imgPoint.Y / _sourceImage.Height;
-            if (x_percent > 1.0f || y_percent > 1.0f || x_percent < 0 || y_percent < 0) return;   //忽略超出边界的点击
+            bool isInImage = x_percent >= 0 && x_percent <= 1.0f && y_percent >= 0 && y_percent <= 1.0f;
 
             if (e.Button == System.Windows.Forms.MouseButtons.Left)
             {
+                if (!isInImage) return;   //忽略超出边界的点击
                 if (!_lastMouseDownArea.Contains(e.Location)) return;
                 if (LabelUserAction != null)
                     LabelUserAction(this, new LabelUserActionEventArgs(clickedLabelIndex, x_percent, y_percent, LabelUserActionEventArgs.ActionType.leftClick));
@@ -643,13 +651,24 @@ namespace LabelPlus
                 //右键
                 if(clickedLabelIndex != -1)
                 {
+                    LabelItem clickedLabel = _labels[clickedLabelIndex];
                     if (LabelUserAction != null)
-                        LabelUserAction(this, new LabelUserActionEventArgs(clickedLabelIndex, x_percent, y_percent, LabelUserActionEventArgs.ActionType.rightClickDel));
+                        LabelUserAction(this, new LabelUserActionEventArgs(clickedLabelIndex, clickedLabel.X_percent, clickedLabel.Y_percent, LabelUserActionEventArgs.ActionType.rightClickDel));
                 }
                 else
                 {
+                    if (!isInImage) return;   //忽略超出边界的点击
                     if (LabelUserAction != null)
                         LabelUserAction(this, new LabelUserActionEventArgs(clickedLabelIndex, x_percent, y_percent, LabelUserActionEventArgs.ActionType.rightClickAdd));
+                }
+            }
+            else if (e.Button == System.Windows.Forms.MouseButtons.Middle)
+            {
+                if (clickedLabelIndex != -1)
+                {
+                    LabelItem clickedLabel = _labels[clickedLabelIndex];
+                    if (LabelUserAction != null)
+                        LabelUserAction(this, new LabelUserActionEventArgs(clickedLabelIndex, clickedLabel.X_percent, clickedLabel.Y_percent, LabelUserActionEventArgs.ActionType.middleClickToggleCategory));
                 }
             }
         }
