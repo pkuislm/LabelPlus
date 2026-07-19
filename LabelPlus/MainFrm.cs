@@ -45,6 +45,7 @@ namespace LabelPlus
         ToolStripMenuItem toolsToolStripMenuItem;
         ToolStripMenuItem searchReplaceToolStripMenuItem;
         ToolStripMenuItem shortcutSettingsToolStripMenuItem;
+        ToolStripMenuItem quickTextToolStripMenuItem;
 
         #endregion
 
@@ -463,6 +464,8 @@ namespace LabelPlus
                 ShowSearchReplaceForm();
             else if (ShortcutManager.Matches(ShortcutManager.ShortcutSettings, e))
                 ShowShortcutSettingsForm();
+            else if (ShortcutManager.Matches(ShortcutManager.QuickTextSettings, e))
+                ShowQuickTextForm();
             else if (ShortcutManager.Matches(ShortcutManager.HideWindow, e))
                 toolStripButton_HideWindow_Click(this, EventArgs.Empty);
             else if (ShortcutManager.Matches(ShortcutManager.FontLarger, e))
@@ -490,12 +493,15 @@ namespace LabelPlus
             toolsToolStripMenuItem = new ToolStripMenuItem("工具(&T)");
             searchReplaceToolStripMenuItem = new ToolStripMenuItem("搜索/替换(&F)");
             shortcutSettingsToolStripMenuItem = new ToolStripMenuItem("快捷键设置(&K)");
+            quickTextToolStripMenuItem = new ToolStripMenuItem("快捷短语设置(&P)");
 
             searchReplaceToolStripMenuItem.Click += delegate { ShowSearchReplaceForm(); };
             shortcutSettingsToolStripMenuItem.Click += delegate { ShowShortcutSettingsForm(); };
+            quickTextToolStripMenuItem.Click += delegate { ShowQuickTextForm(); };
 
             toolsToolStripMenuItem.DropDownItems.Add(searchReplaceToolStripMenuItem);
             toolsToolStripMenuItem.DropDownItems.Add(shortcutSettingsToolStripMenuItem);
+            toolsToolStripMenuItem.DropDownItems.Add(quickTextToolStripMenuItem);
 
             int insertIndex = Math.Max(0, menuStrip1.Items.Count - 1);
             menuStrip1.Items.Insert(insertIndex, toolsToolStripMenuItem);
@@ -524,6 +530,14 @@ namespace LabelPlus
             }
         }
 
+        private void ShowQuickTextForm()
+        {
+            using (var form = new QuickTextFrm())
+            {
+                form.ShowDialog(this);
+            }
+        }
+
         private void UpdateShortcutTexts()
         {
             saveProjectSToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.SaveFile);
@@ -532,10 +546,9 @@ namespace LabelPlus
             saveAsDToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.SaveAs);
             imageToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.ImageManager);
 
-            if (searchReplaceToolStripMenuItem != null)
-                searchReplaceToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.SearchReplace);
-            if (shortcutSettingsToolStripMenuItem != null)
-                shortcutSettingsToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.ShortcutSettings);
+            searchReplaceToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.SearchReplace);
+            shortcutSettingsToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.ShortcutSettings);
+            quickTextToolStripMenuItem.ShortcutKeyDisplayString = ShortcutManager.GetText(ShortcutManager.QuickTextSettings);
 
             toolStripButton_HideWindow.ToolTipText = "隐藏窗口 (" + ShortcutManager.GetText(ShortcutManager.HideWindow) + ")";
             labelCtrlEnterTip.Text = "切换条目(" + ShortcutManager.GetText(ShortcutManager.LabelNext) + ","
