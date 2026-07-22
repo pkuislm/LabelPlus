@@ -412,6 +412,8 @@ namespace LabelPlus
             LabelFileManager.LabelItemListChanged += labelProgressChanged;
             LabelFileManager.LabelItemTextChanged += labelProgressChanged;
             LabelFileManager.GroupListChanged += labelProgressChanged;
+            toolStripComboBox_File.SelectedIndexChanged += labelProgressChanged;
+            dataGridViewAdapter.SelectedIndexChanged += labelProgressChanged;
             UpdateLabelProgress();
         }
 
@@ -428,6 +430,7 @@ namespace LabelPlus
             if (LabelFileManager.store == null)
             {
                 labelProgressItem.SetSegments(new LabelProgressSegment[0]);
+                labelProgressItem.SetSelectedIndex(-1);
                 labelProgressText.Text = "总计 0/0";
                 return;
             }
@@ -467,6 +470,7 @@ namespace LabelPlus
             }
 
             labelProgressItem.SetSegments(segments);
+            labelProgressItem.SetSelectedIndex(GetSelectedLabelProgressIndex());
 
             var parts = new List<string>();
             foreach (int category in categoryCounts.Keys.OrderBy(value => value))
@@ -476,6 +480,26 @@ namespace LabelPlus
             }
             parts.Add("总计 " + completedTotal + "/" + labels.Count);
             labelProgressText.Text = string.Join("  ", parts);
+        }
+
+        private int GetSelectedLabelProgressIndex()
+        {
+            if (wsp_control_apt == null || LabelFileManager.store == null ||
+                wsp_control_apt.ItemIndex < 0 || string.IsNullOrEmpty(wsp_control_apt.FileName))
+                return -1;
+
+            int offset = 0;
+            foreach (var file in LabelFileManager.store)
+            {
+                if (file.Key == wsp_control_apt.FileName)
+                {
+                    return wsp_control_apt.ItemIndex < file.Value.Count
+                        ? offset + wsp_control_apt.ItemIndex
+                        : -1;
+                }
+                offset += file.Value.Count;
+            }
+            return -1;
         }
 
         #endregion

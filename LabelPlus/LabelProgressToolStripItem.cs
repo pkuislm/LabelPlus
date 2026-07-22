@@ -25,11 +25,12 @@ namespace LabelPlus
             private readonly ProgressMagnifierPopup magnifier;
             private bool isMagnifierVisible;
             private int magnifierMouseX;
+            private int selectedIndex = -1;
 
             public LabelProgressBar()
             {
                 DoubleBuffered = true;
-                Size = new Size(250, 18);
+                Size = new Size(250, 25);
                 Margin = new Padding(0);
 
                 magnifier = new ProgressMagnifierPopup();
@@ -44,16 +45,24 @@ namespace LabelPlus
                 Invalidate();
             }
 
+            public void SetSelectedIndex(int index)
+            {
+                selectedIndex = index;
+                magnifier.SetSelectedIndex(index);
+                Invalidate();
+            }
+
             protected override void OnPaint(PaintEventArgs e)
             {
                 base.OnPaint(e);
 
                 Rectangle bounds = ClientRectangle;
-                e.Graphics.FillRectangle(SystemBrushes.ControlLightLight, bounds);
+                Rectangle barBounds = bounds;
+                e.Graphics.FillRectangle(SystemBrushes.ControlLightLight, barBounds);
 
-                if (segments.Count > 0 && bounds.Width > 2 && bounds.Height > 2)
+                if (segments.Count > 0 && barBounds.Width > 2 && barBounds.Height > 2)
                 {
-                    int innerWidth = bounds.Width - 2;
+                    int innerWidth = barBounds.Width - 2;
                     int x = 1;
                     for (int i = 0; i < segments.Count; i++)
                     {
@@ -65,13 +74,13 @@ namespace LabelPlus
                                 ? segments[i].Color
                                 : Lighten(segments[i].Color);
                             using (var brush = new SolidBrush(color))
-                                e.Graphics.FillRectangle(brush, x, 1, width, bounds.Height - 2);
+                                e.Graphics.FillRectangle(brush, x, 1, width, barBounds.Height - 2);
                         }
                         x = right;
                     }
                 }
 
-                e.Graphics.DrawRectangle(SystemPens.ControlDark, 0, 0, bounds.Width - 1, bounds.Height - 1);
+                e.Graphics.DrawRectangle(SystemPens.ControlDark, 0, 0, barBounds.Width - 1, barBounds.Height - 1);
 
                 if (isMagnifierVisible && segments.Count > 0)
                 {
@@ -79,7 +88,22 @@ namespace LabelPlus
                     float sourceLeft = magnifierMouseX - visibleSourceWidth / 2f;
                     sourceLeft = Math.Max(0, Math.Min(Width - visibleSourceWidth, sourceLeft));
                     using (var pen = new Pen(Color.FromArgb(220, Color.Black), 1.5f))
-                        e.Graphics.DrawRectangle(pen, sourceLeft, 1, visibleSourceWidth, Height - 3);
+                        e.Graphics.DrawRectangle(pen, sourceLeft, 1, visibleSourceWidth, barBounds.Height - 3);
+                }
+
+                if (selectedIndex >= 0 && selectedIndex < segments.Count)
+                {
+                    float centerX = 1 + (selectedIndex + 0.5f) * (barBounds.Width - 2) / segments.Count;
+                    float triangleHeight = Math.Max(3f, (barBounds.Height - 2) * 0.2f);
+                    float triangleBaseY = barBounds.Bottom;
+                    PointF[] triangle =
+                    {
+                        new PointF(centerX - triangleHeight, triangleBaseY),
+                        new PointF(centerX + triangleHeight, triangleBaseY),
+                        new PointF(centerX, triangleBaseY - triangleHeight)
+                    };
+                    using (var brush = new SolidBrush(Color.FromArgb(210, Color.Black)))
+                        e.Graphics.FillPolygon(brush, triangle);
                 }
             }
 
@@ -133,6 +157,7 @@ namespace LabelPlus
             private List<LabelProgressSegment> segments = new List<LabelProgressSegment>();
             private int sourceMouseX;
             private int sourceWidth;
+            private int selectedIndex = -1;
 
             public ProgressMagnifierPopup()
             {
@@ -165,6 +190,12 @@ namespace LabelPlus
                 segments = new List<LabelProgressSegment>(values);
                 sourceMouseX = mouseX;
                 sourceWidth = Math.Max(1, progressWidth);
+                Invalidate();
+            }
+
+            public void SetSelectedIndex(int index)
+            {
+                selectedIndex = index;
                 Invalidate();
             }
 
@@ -207,6 +238,25 @@ namespace LabelPlus
                         }
                     }
                 }
+
+                if (selectedIndex >= 0 && selectedIndex < segments.Count)
+                {
+                    float selectedCenter = (selectedIndex + 0.5f) * sourceWidth / segments.Count;
+                    if (selectedCenter >= sourceLeft && selectedCenter <= sourceRight)
+                    {
+                        float outputCenter = 2 + (selectedCenter - sourceLeft) / visibleSourceWidth * (Width - 4);
+                        float triangleHeight = Math.Max(4f, (Height - 4) * 0.2f);
+                        float triangleBaseY = Height;
+                        PointF[] triangle =
+                        {
+                            new PointF(outputCenter - triangleHeight, triangleBaseY),
+                            new PointF(outputCenter + triangleHeight, triangleBaseY),
+                            new PointF(outputCenter, triangleBaseY - triangleHeight)
+                        };
+                        using (var brush = new SolidBrush(Color.FromArgb(210, Color.Black)))
+                            e.Graphics.FillPolygon(brush, triangle);
+                    }
+                }
                 e.Graphics.DrawRectangle(SystemPens.InfoText, 0, 0, Width - 1, Height - 1);
             }
         }
@@ -218,13 +268,18 @@ namespace LabelPlus
         {
             progressBar = (LabelProgressBar)Control;
             AutoSize = false;
-            Size = new Size(254, 23);
+            Size = new Size(254, 25);
             Margin = new Padding(3, 0, 2, 0);
         }
 
         public void SetSegments(IEnumerable<LabelProgressSegment> segments)
         {
             progressBar.SetSegments(segments);
+        }
+
+        public void SetSelectedIndex(int index)
+        {
+            progressBar.SetSelectedIndex(index);
         }
     }
 }
