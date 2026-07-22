@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -33,6 +34,7 @@ namespace LabelPlus
         public const string ImageManager = "file.imageManager";
         public const string SearchReplace = "edit.searchReplace";
         public const string ShortcutSettings = "edit.shortcutSettings";
+        public const string QuickTextSettings = "edit.quicktextSettings";
         public const string HideWindow = "view.hideWindow";
         public const string FontLarger = "edit.fontLarger";
         public const string FontSmaller = "edit.fontSmaller";
@@ -57,6 +59,7 @@ namespace LabelPlus
             new ShortcutDefinition(ImageManager, "图片管理", "文件", Keys.Control | Keys.I),
             new ShortcutDefinition(SearchReplace, "搜索/替换", "编辑", Keys.Control | Keys.F),
             new ShortcutDefinition(ShortcutSettings, "快捷键设置", "编辑", Keys.Control | Keys.K),
+            new ShortcutDefinition(QuickTextSettings, "快捷短语设置", "编辑", Keys.Control | Keys.P),
             new ShortcutDefinition(HideWindow, "隐藏窗口", "视图", Keys.Control | Keys.T),
             new ShortcutDefinition(FontLarger, "增大编辑字体", "编辑", Keys.Control | Keys.Shift | Keys.Oemplus),
             new ShortcutDefinition(FontSmaller, "减小编辑字体", "编辑", Keys.Control | Keys.Shift | Keys.OemMinus),

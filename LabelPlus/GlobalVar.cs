@@ -18,13 +18,6 @@ namespace LabelPlus
     static class GlobalVar
     {
         public static GroupDefineItem[] DefaultGroupDefineItems; 
-
-        public struct QuickTextItem
-        {
-            public string Text;
-            public string Key;
-        }
-        public static QuickTextItem[] QuickTextItems;
         //public static string AutoGroupActionGroupname;
 
         public static float SetLabelVisualRatioX;
@@ -42,17 +35,6 @@ namespace LabelPlus
             /* 读配置文件 */
             XmlDocument doc = new XmlDocument();
             doc.Load(@"labelplus_config.xml");
-
-            /* QuickText */
-            XmlNodeList QuickText = doc.SelectNodes("AppConfig/QuickText/Item");
-            QuickTextItems = new QuickTextItem[QuickText.Count];
-            for (int i=0; i < QuickText.Count; i++)
-            {
-                QuickTextItem item;
-                item.Text = QuickText[i].SelectSingleNode("Text").InnerText;
-                item.Key = QuickText[i].SelectSingleNode("Key").InnerText;
-                QuickTextItems[i] = item;
-            }
 
             ///* AutoGroupActionGroupname */
             //AutoGroupActionGroupname = doc.SelectSingleNode("AppConfig/AutoGroupActionGroupname").InnerText;
@@ -103,6 +85,7 @@ namespace LabelPlus
             SetVisualWhenIndexChanged = Convert.ToBoolean(doc.SelectSingleNode("AppConfig/SetVisualWhenIndexChanged").InnerText);
 
             ShortcutManager.Load(doc);
+            QuickTextManager.Load(doc);
         }
 
         public static void Save()
@@ -117,6 +100,7 @@ namespace LabelPlus
             doc.SelectSingleNode("AppConfig/SetVisualWhenIndexChanged").InnerText = SetVisualWhenIndexChanged.ToString();
 
             ShortcutManager.Save(doc);
+            QuickTextManager.Save(doc);
 
             using (XmlWriter wr = XmlWriter.Create(
                 @"labelplus_config.xml",

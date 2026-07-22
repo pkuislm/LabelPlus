@@ -45,7 +45,7 @@
             this.SuspendLayout();
             // 
             // grid
-            // 
+            //
             this.grid.Dock = System.Windows.Forms.DockStyle.Fill;
             this.grid.AllowUserToAddRows = false;
             this.grid.AllowUserToDeleteRows = false;

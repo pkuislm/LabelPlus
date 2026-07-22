@@ -570,6 +570,20 @@ namespace LabelPlus
             picview.Invalidate();
         }
 
+        private void RefreshQuickTextMenu()
+        {
+            menuquicktext.Items.Clear();
+            foreach (QuickTextItem item in QuickTextManager.Items)
+            {
+                string menuItemStr = item.Text + "(&" + QuickTextManager.KeyToText(item.Key) + ")";
+                menuquicktext.Items.Add(menuItemStr).ToolTipText = item.Text;
+            }
+        }
+
+        private void QuickTextItemsChanged(object sender, EventArgs e)
+        {
+            RefreshQuickTextMenu();
+        }
 
         private void quickTextItemClicked(object sender, ToolStripItemClickedEventArgs e)
         {
@@ -603,7 +617,6 @@ namespace LabelPlus
 
             quickTextShortcutFilter = new QuickTextShortcutFilter(
                 menuquicktext,
-                GlobalVar.QuickTextItems,
                 InsertQuickText);
             Application.AddMessageFilter(quickTextShortcutFilter);
             textbox.ImeMode = ImeMode.Off;
@@ -613,16 +626,13 @@ namespace LabelPlus
         {
             private const int WM_KEYDOWN = 0x0100;
             private readonly ContextMenuStrip menu;
-            private readonly GlobalVar.QuickTextItem[] items;
             private readonly Action<string> insertText;
 
             public QuickTextShortcutFilter(
                 ContextMenuStrip menu,
-                GlobalVar.QuickTextItem[] items,
                 Action<string> insertText)
             {
                 this.menu = menu;
-                this.items = items;
                 this.insertText = insertText;
             }
 
@@ -642,9 +652,9 @@ namespace LabelPlus
                 if (string.IsNullOrEmpty(keyText))
                     return false;
 
-                foreach (GlobalVar.QuickTextItem item in items)
+                foreach (QuickTextItem item in QuickTextManager.Items)
                 {
-                    if (string.Equals(item.Key, keyText, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(QuickTextManager.KeyToText(item.Key), keyText, StringComparison.OrdinalIgnoreCase))
                     {
                         insertText(item.Text);
                         return true;
@@ -677,7 +687,7 @@ namespace LabelPlus
             GroupBox TextBoxGroupBox,
             DataGridViewAdapter LabelListViewAPT,
             PicView picView,
-            ContextMenuStrip contextMenuQuictText,
+            ContextMenuStrip contextMenuQuickText,
             ToolStrip toolStrip,
             Workspace workspace,
             APIManager apiManager)
@@ -714,13 +724,9 @@ namespace LabelPlus
             listviewapt.SelectedIndexChanged += new EventHandler(listViewSelectedIndexChanged);
             listviewapt.UserSetCategory += new DataGridViewAdapter.UserActionEventHandler(listViewUserAction);
 
-            menuquicktext = contextMenuQuictText;
-            foreach (GlobalVar.QuickTextItem item in GlobalVar.QuickTextItems)
-            {
-                string menuItemStr = item.Text + "(&" + item.Key + ")";
-                menuquicktext.Items.Add(menuItemStr).ToolTipText = item.Text;
-
-            }
+            menuquicktext = contextMenuQuickText;
+            RefreshQuickTextMenu();
+            QuickTextManager.ItemsChanged += new EventHandler(QuickTextItemsChanged);
             menuquicktext.ItemClicked += new ToolStripItemClickedEventHandler(quickTextItemClicked);
             menuquicktext.Opened += new EventHandler(quickTextOpened);
             menuquicktext.Closed += new ToolStripDropDownClosedEventHandler(quickTextClosed);

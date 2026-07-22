@@ -46,7 +46,7 @@
             this.tableLayoutPanel1.RowCount = 2;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(343, 94);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(333, 62);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // label1
@@ -54,16 +54,16 @@
             this.label1.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("宋体", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
-            this.label1.Location = new System.Drawing.Point(128, 15);
+            this.label1.Location = new System.Drawing.Point(79, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(87, 16);
+            this.label1.Size = new System.Drawing.Size(175, 31);
             this.label1.TabIndex = 0;
             this.label1.Text = "Waiting...";
             // 
             // progressBar
             // 
             this.progressBar.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.progressBar.Location = new System.Drawing.Point(37, 59);
+            this.progressBar.Location = new System.Drawing.Point(32, 35);
             this.progressBar.Name = "progressBar";
             this.progressBar.Size = new System.Drawing.Size(268, 23);
             this.progressBar.TabIndex = 1;
@@ -72,7 +72,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(343, 94);
+            this.ClientSize = new System.Drawing.Size(333, 62);
             this.ControlBox = false;
             this.Controls.Add(this.tableLayoutPanel1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
