@@ -45,6 +45,8 @@ namespace LabelPlus
         ToolStripMenuItem toolsToolStripMenuItem;
         ToolStripMenuItem searchReplaceToolStripMenuItem;
         ToolStripMenuItem shortcutSettingsToolStripMenuItem;
+        LabelProgressToolStripItem labelProgressItem;
+        ToolStripLabel labelProgressText;
 
         #endregion
 
@@ -380,6 +382,8 @@ namespace LabelPlus
 
             langComboxApt = new LangComboxAdaptor(langToolStripComboBox, this);
 
+            InitLabelProgress();
+
             SetLayout();
 
             SetFont(new Font(GlobalVar.FontName, GlobalVar.FontSize, (FontStyle)GlobalVar.FontStyle));
@@ -387,6 +391,92 @@ namespace LabelPlus
             SetVisualWhenIndexChanged(GlobalVar.SetVisualWhenIndexChanged);
             UpdateShortcutTexts();
         }
+        #endregion
+
+        #region Label progress
+
+        private void InitLabelProgress()
+        {
+            labelProgressItem = new LabelProgressToolStripItem();
+            labelProgressText = new ToolStripLabel
+            {
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Width = 500
+            };
+
+            toolStrip.Items.Add(labelProgressItem);
+            toolStrip.Items.Add(labelProgressText);
+
+            LabelFileManager.LabelItemListChanged += labelProgressChanged;
+            LabelFileManager.LabelItemTextChanged += labelProgressChanged;
+            LabelFileManager.GroupListChanged += labelProgressChanged;
+            UpdateLabelProgress();
+        }
+
+        private void labelProgressChanged(object sender, EventArgs e)
+        {
+            UpdateLabelProgress();
+        }
+
+        private void UpdateLabelProgress()
+        {
+            if (labelProgressItem == null || labelProgressText == null)
+                return;
+
+            if (LabelFileManager.store == null)
+            {
+                labelProgressItem.SetSegments(new LabelProgressSegment[0]);
+                labelProgressText.Text = "总计 0/0";
+                return;
+            }
+
+            List<LabelItem> labels = LabelFileManager.store.Values.SelectMany(items => items).ToList();
+
+            var segments = new List<LabelProgressSegment>(labels.Count);
+            var categoryCounts = new Dictionary<int, int[]>();
+            int completedTotal = 0;
+
+            foreach (LabelItem label in labels)
+            {
+                bool completed = !string.IsNullOrWhiteSpace(label.Text);
+                if (completed)
+                    completedTotal++;
+
+                Color color;
+                try
+                {
+                    color = wsp.GroupDefine.GetColor(label.Category);
+                }
+                catch
+                {
+                    color = Color.Gray;
+                }
+                segments.Add(new LabelProgressSegment(color, completed));
+
+                int[] counts;
+                if (!categoryCounts.TryGetValue(label.Category, out counts))
+                {
+                    counts = new int[2]; // completed, total
+                    categoryCounts.Add(label.Category, counts);
+                }
+                if (completed)
+                    counts[0]++;
+                counts[1]++;
+            }
+
+            labelProgressItem.SetSegments(segments);
+
+            var parts = new List<string>();
+            foreach (int category in categoryCounts.Keys.OrderBy(value => value))
+            {
+                int[] counts = categoryCounts[category];
+                parts.Add(wsp.GroupDefine.GetViewName(category) + " " + counts[0] + "/" + counts[1]);
+            }
+            parts.Add("总计 " + completedTotal + "/" + labels.Count);
+            labelProgressText.Text = string.Join("  ", parts);
+        }
+
         #endregion
 
         #region SetLayout

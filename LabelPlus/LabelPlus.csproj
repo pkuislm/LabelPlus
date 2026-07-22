@@ -184,6 +184,9 @@
     </Compile>
     <Compile Include="StringResources.cs" />
     <Compile Include="LangComboxAdaptor.cs" />
+    <Compile Include="LabelProgressToolStripItem.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Language.cs" />
     <Compile Include="MainFrm.cs">
       <SubType>Form</SubType>
