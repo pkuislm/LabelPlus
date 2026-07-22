@@ -17,6 +17,16 @@ namespace LabelPlus
         }
     }
 
+    internal sealed class LabelProgressSegmentClickedEventArgs : EventArgs
+    {
+        public int Index { get; private set; }
+
+        public LabelProgressSegmentClickedEventArgs(int index)
+        {
+            Index = index;
+        }
+    }
+
     internal sealed class LabelProgressToolStripItem : ToolStripControlHost
     {
         private sealed class LabelProgressBar : Control
@@ -26,6 +36,7 @@ namespace LabelPlus
             private bool isMagnifierVisible;
             private int magnifierMouseX;
             private int selectedIndex = -1;
+            public event EventHandler<LabelProgressSegmentClickedEventArgs> SegmentClicked;
 
             public LabelProgressBar()
             {
@@ -37,6 +48,7 @@ namespace LabelPlus
                 MouseEnter += showMagnifier;
                 MouseMove += showMagnifier;
                 MouseLeave += hideMagnifier;
+                MouseClick += progressBar_MouseClick;
             }
 
             public void SetSegments(IEnumerable<LabelProgressSegment> values)
@@ -142,6 +154,17 @@ namespace LabelPlus
                 isMagnifierVisible = false;
                 Invalidate();
                 magnifier.Hide();
+            }
+
+            private void progressBar_MouseClick(object sender, MouseEventArgs e)
+            {
+                if (e.Button != MouseButtons.Left || segments.Count == 0 || Width <= 0)
+                    return;
+
+                int index = Math.Min(segments.Count - 1,
+                    Math.Max(0, (int)(e.X * (long)segments.Count / Width)));
+                if (SegmentClicked != null)
+                    SegmentClicked(this, new LabelProgressSegmentClickedEventArgs(index));
             }
 
             protected override void Dispose(bool disposing)
@@ -262,11 +285,17 @@ namespace LabelPlus
         }
 
         private readonly LabelProgressBar progressBar;
+        public event EventHandler<LabelProgressSegmentClickedEventArgs> SegmentClicked;
 
         public LabelProgressToolStripItem()
             : base(new LabelProgressBar())
         {
             progressBar = (LabelProgressBar)Control;
+            progressBar.SegmentClicked += delegate(object sender, LabelProgressSegmentClickedEventArgs e)
+            {
+                if (SegmentClicked != null)
+                    SegmentClicked(this, e);
+            };
             AutoSize = false;
             Size = new Size(254, 25);
             Margin = new Padding(3, 0, 2, 0);

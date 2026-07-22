@@ -409,6 +409,7 @@ namespace LabelPlus
             toolStrip.Items.Add(labelProgressItem);
             toolStrip.Items.Add(labelProgressText);
 
+            labelProgressItem.SegmentClicked += labelProgressSegmentClicked;
             LabelFileManager.LabelItemListChanged += labelProgressChanged;
             LabelFileManager.LabelItemTextChanged += labelProgressChanged;
             LabelFileManager.GroupListChanged += labelProgressChanged;
@@ -420,6 +421,25 @@ namespace LabelPlus
         private void labelProgressChanged(object sender, EventArgs e)
         {
             UpdateLabelProgress();
+        }
+
+        private void labelProgressSegmentClicked(object sender, LabelProgressSegmentClickedEventArgs e)
+        {
+            if (wsp_control_apt == null || LabelFileManager.store == null)
+                return;
+
+            int index = e.Index;
+            foreach (var file in LabelFileManager.store)
+            {
+                if (index < file.Value.Count)
+                {
+                    // SelectLabel switches the image when needed and focuses the right-hand
+                    // translation input with its caret at the beginning.
+                    wsp_control_apt.SelectLabel(file.Key, index, 0, 0);
+                    return;
+                }
+                index -= file.Value.Count;
+            }
         }
 
         private void UpdateLabelProgress()
