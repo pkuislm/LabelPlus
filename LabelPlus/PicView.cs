@@ -11,8 +11,14 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Windows.Forms;
+using SharpDX;
+using SharpDX.DXGI;
+using SharpDX.Mathematics.Interop;
+using D2D = SharpDX.Direct2D1;
+using DW = SharpDX.DirectWrite;
 #endregion
 
 namespace LabelPlus
@@ -79,13 +85,24 @@ namespace LabelPlus
 
         /*图像相关*/
         Image _sourceImage;
+        const float MinZoom = 0.05f;
+        const float MaxZoom = 5.0f;
+        const float WheelZoomStep = 0.1f;
         float _zoom = 0;
         PointF _viewOffset;
+
+        /*GPU绘制相关*/
+        D2D.Factory _d2dFactory;
+        DW.Factory _directWriteFactory;
+        D2D.DeviceContextRenderTarget _d2dRenderTarget;
+        D2D.Bitmap _d2dSourceBitmap;
+        bool _gpuUnavailable;
 
         public Image Image
         {
             set
             {
+                DisposeGpuImage();
                 if (_sourceImage != null)
                 {
                     _sourceImage.Dispose();
@@ -122,7 +139,7 @@ namespace LabelPlus
         {
             set
             {
-                float newZoom = Math.Max(0.05f, Math.Min(2.0f, value));
+                float newZoom = Math.Max(MinZoom, Math.Min(MaxZoom, value));
                 if (Math.Abs(newZoom - _zoom) < 0.0001f)
                     return;
                 _zoom = newZoom;
@@ -167,7 +184,8 @@ namespace LabelPlus
             this.KeyUp += new KeyEventHandler(PicView_Label_KeyUp);
 
             this.DoubleBuffered = true;
-            this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            this.SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint |
+                ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             
             //提示标签
             toolTip.UseFading = false;
@@ -235,9 +253,15 @@ namespace LabelPlus
         {
             try
             {
-                e.Graphics.Clear(BackColor);
-
                 if (_sourceImage == null) return;
+
+                if (TryPaintWithGpu(e.Graphics))
+                {
+                    return;
+                }
+
+                // 使用Fallback模式
+                e.Graphics.Clear(BackColor);
 
                 Graphics g = e.Graphics;
 
@@ -246,14 +270,7 @@ namespace LabelPlus
                     g.Transform = transform;
                     g.SmoothingMode = SmoothingMode.HighSpeed;
 
-                    if (_isDraggingImage || _isDraggingLabel)
-                    {
-                        g.InterpolationMode = InterpolationMode.NearestNeighbor;
-                    }
-                    else
-                    {
-                        g.InterpolationMode = _zoom > 1.0f ? InterpolationMode.NearestNeighbor : InterpolationMode.HighQualityBicubic;
-                    }
+                    g.InterpolationMode = InterpolationMode.NearestNeighbor;
 
                     g.DrawImage(_sourceImage, 0, 0, _sourceImage.Width, _sourceImage.Height);
 
@@ -268,6 +285,170 @@ namespace LabelPlus
             catch { }
         }
 
+        private bool TryPaintWithGpu(Graphics graphics)
+        {
+            if (_gpuUnavailable || !IsHandleCreated || _sourceImage == null || Width <= 0 || Height <= 0)
+                return false;
+
+            try
+            {
+                EnsureGpuResources();
+                IntPtr hdc = graphics.GetHdc();
+                try
+                {
+                    _d2dRenderTarget.BindDeviceContext(hdc, new RawRectangle(0, 0, Width, Height));
+                    _d2dRenderTarget.BeginDraw();
+                    _d2dRenderTarget.Clear(new RawColor4(BackColor.R / 255f, BackColor.G / 255f, BackColor.B / 255f, BackColor.A / 255f));
+                    _d2dRenderTarget.Transform = new RawMatrix3x2
+                    {
+                        M11 = _zoom,
+                        M12 = 0,
+                        M21 = 0,
+                        M22 = _zoom,
+                        M31 = _viewOffset.X,
+                        M32 = _viewOffset.Y
+                    };
+                    _d2dRenderTarget.DrawBitmap(_d2dSourceBitmap, 1.0f, D2D.BitmapInterpolationMode.Linear);
+                    if (!_hideLabel && _labels != null)
+                        DrawLabelsWithGpu();
+                    _d2dRenderTarget.EndDraw();
+                }
+                finally
+                {
+                    graphics.ReleaseHdc(hdc);
+                }
+                return true;
+            }
+            catch
+            {
+                // 出现异常时，直接退回到GDI模式
+                DisposeGpuResources();
+                _gpuUnavailable = true;
+                return false;
+            }
+        }
+
+        private void EnsureGpuResources()
+        {
+            if (_d2dFactory == null)
+                _d2dFactory = new D2D.Factory(D2D.FactoryType.SingleThreaded);
+            if (_directWriteFactory == null)
+                _directWriteFactory = new DW.Factory();
+
+            if (_d2dRenderTarget == null)
+            {
+                var properties = new D2D.RenderTargetProperties(D2D.RenderTargetType.Hardware,
+                    new D2D.PixelFormat(Format.B8G8R8A8_UNorm, D2D.AlphaMode.Premultiplied), 0, 0,
+                    D2D.RenderTargetUsage.None, D2D.FeatureLevel.Level_DEFAULT);
+                _d2dRenderTarget = new D2D.DeviceContextRenderTarget(_d2dFactory, properties);
+            }
+
+            if (_d2dSourceBitmap == null)
+                CreateGpuSourceBitmap();
+        }
+
+        private void CreateGpuSourceBitmap()
+        {
+            using (var bitmap = new Bitmap(_sourceImage.Width, _sourceImage.Height, PixelFormat.Format32bppPArgb))
+            {
+                using (var graphics = Graphics.FromImage(bitmap))
+                    graphics.DrawImage(_sourceImage, 0, 0, bitmap.Width, bitmap.Height);
+
+                var rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+                var data = bitmap.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+                try
+                {
+                    var properties = new D2D.BitmapProperties(
+                        new D2D.PixelFormat(Format.B8G8R8A8_UNorm, D2D.AlphaMode.Premultiplied), 96, 96);
+                    _d2dSourceBitmap = new D2D.Bitmap(_d2dRenderTarget, new Size2(bitmap.Width, bitmap.Height),
+                        new DataPointer(data.Scan0, Math.Abs(data.Stride) * bitmap.Height), data.Stride, properties);
+                }
+                finally
+                {
+                    bitmap.UnlockBits(data);
+                }
+            }
+        }
+
+        private void DrawLabelsWithGpu()
+        {
+            const float labelAlpha = 200f / 255f;
+            float baseLen = LabelSize();
+            float labelFontSize = baseLen / 1.5f;
+
+            using (var textFormat = new DW.TextFormat(_directWriteFactory, "Arial", DW.FontWeight.Bold,
+                DW.FontStyle.Normal, DW.FontStretch.Normal, labelFontSize))
+            using (var whiteBrush = new D2D.SolidColorBrush(_d2dRenderTarget, new RawColor4(1, 1, 1, labelAlpha)))
+            {
+                textFormat.TextAlignment = DW.TextAlignment.Center;
+                textFormat.ParagraphAlignment = DW.ParagraphAlignment.Center;
+                textFormat.WordWrapping = DW.WordWrapping.NoWrap;
+
+                for (int i = 0; i < _labels.Count; i++)
+                {
+                    var geo = LabelGeometry.CalcLabelGeometry(_labels[i], _sourceImage, _zoom);
+                    Color color = colorList[_labels[i].Category - 1];
+                    using (var colorBrush = new D2D.SolidColorBrush(_d2dRenderTarget,
+                        new RawColor4(color.R / 255f, color.G / 255f, color.B / 255f, labelAlpha)))
+                    {
+                        var ellipse = new D2D.Ellipse(new RawVector2(geo.CircleCenter.X, geo.CircleCenter.Y),
+                            geo.CircleRect.Width / 2, geo.CircleRect.Height / 2);
+                        _d2dRenderTarget.DrawEllipse(ellipse, whiteBrush, baseLen * 0.1f);
+                        _d2dRenderTarget.FillEllipse(ellipse, colorBrush);
+                        _d2dRenderTarget.DrawText((i + 1).ToString(), textFormat,
+                            new RawRectangleF(geo.CircleRect.Left, geo.CircleRect.Top, geo.CircleRect.Right, geo.CircleRect.Bottom),
+                            whiteBrush);
+
+                        using (var triangle = new D2D.PathGeometry(_d2dFactory))
+                        using (var sink = triangle.Open())
+                        {
+                            sink.BeginFigure(new RawVector2(geo.Triangle[0].X, geo.Triangle[0].Y), D2D.FigureBegin.Filled);
+                            sink.AddLine(new RawVector2(geo.Triangle[1].X, geo.Triangle[1].Y));
+                            sink.AddLine(new RawVector2(geo.Triangle[2].X, geo.Triangle[2].Y));
+                            sink.EndFigure(D2D.FigureEnd.Closed);
+                            sink.Close();
+                            _d2dRenderTarget.FillGeometry(triangle, colorBrush);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void DisposeGpuImage()
+        {
+            if (_d2dSourceBitmap != null)
+            {
+                _d2dSourceBitmap.Dispose();
+                _d2dSourceBitmap = null;
+            }
+        }
+
+        private void DisposeGpuResources()
+        {
+            DisposeGpuImage();
+            if (_d2dRenderTarget != null)
+            {
+                _d2dRenderTarget.Dispose();
+                _d2dRenderTarget = null;
+            }
+            if (_d2dFactory != null)
+            {
+                _d2dFactory.Dispose();
+                _d2dFactory = null;
+            }
+            if (_directWriteFactory != null)
+            {
+                _directWriteFactory.Dispose();
+                _directWriteFactory = null;
+            }
+        }
+
+        protected override void OnHandleDestroyed(EventArgs e)
+        {
+            DisposeGpuResources();
+            base.OnHandleDestroyed(e);
+        }
+
         // 将标签绘制逻辑提取出来
         private void DrawLabels(Graphics g)
         {
@@ -276,7 +457,12 @@ namespace LabelPlus
             float labelFontSize = baseLen / 2.1f;
 
             using (Font myFont = new Font("Arial", labelFontSize, FontStyle.Bold))
-            using (StringFormat sf = new StringFormat() { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+            using (StringFormat sf = new StringFormat()
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
+                FormatFlags = StringFormatFlags.NoWrap
+            })
             using (Pen whitePen = new Pen(Color.FromArgb(labelAlpha, Color.White), baseLen * 0.1f))
             {
                 var colorBrushes = colorList.Select(c => new SolidBrush(Color.FromArgb(labelAlpha, c))).ToArray();
@@ -314,16 +500,15 @@ namespace LabelPlus
         }
         private void PicView_Load(object sender, EventArgs e)
         {
-            DoubleBuffered = true;
-            SetStyle(ControlStyles.OptimizedDoubleBuffer |
-            ControlStyles.ResizeRedraw |
-            ControlStyles.AllPaintingInWmPaint, true);
+            SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw |
+                ControlStyles.AllPaintingInWmPaint, true);
         }
 
         #endregion
 
         #region 拖拽操作
         bool _isDraggingImage = false;
+        bool _isImageDragCandidate = false;
         Rectangle _lastMouseDownArea;
         Point _lastMousePos;
 
@@ -362,7 +547,10 @@ namespace LabelPlus
                 }
                 else
                 {
-                    _isDraggingImage = true;
+                    // A click can add a label.  Do not start panning until the pointer has
+                    // moved beyond the standard drag threshold, otherwise small hand motion
+                    // during repeated clicks is mistaken for an image drag.
+                    _isImageDragCandidate = true;
                     _lastMousePos = e.Location;
                 }
             }
@@ -383,6 +571,7 @@ namespace LabelPlus
             else
             {
                 _isDraggingImage = false;
+                _isImageDragCandidate = false;
             }
             Invalidate();
         }
@@ -404,7 +593,24 @@ namespace LabelPlus
                 return;
             }
 
-            if (_isDraggingImage == false) return;
+            if (!_isDraggingImage)
+            {
+                if (!_isImageDragCandidate)
+                    return;
+
+                Size dragSize = SystemInformation.DragSize;
+                Rectangle dragThreshold = new Rectangle(
+                    _lastMousePos.X - dragSize.Width / 2,
+                    _lastMousePos.Y - dragSize.Height / 2,
+                    dragSize.Width,
+                    dragSize.Height);
+                if (dragThreshold.Contains(e.Location))
+                    return;
+
+                _isDraggingImage = true;
+                _lastMousePos = e.Location;
+                return;
+            }
 
             float deltaX = e.X - _lastMousePos.X;
             float deltaY = e.Y - _lastMousePos.Y;
@@ -441,8 +647,16 @@ namespace LabelPlus
             }
 
             float oldZoom = _zoom;
-            float newZoom = _zoom + (e.Delta > 0 ? 0.1f : -0.1f);
-            newZoom = Math.Max(0.05f, Math.Min(3.0f, newZoom));
+            // High-resolution mice and touchpads may generate many small Delta values for
+            // one physical wheel movement.  Scale the step by Delta instead of treating
+            // every event as one full notch, and cap a single event to one notch.
+            float wheelNotches = e.Delta / (float)SystemInformation.MouseWheelScrollDelta;
+            wheelNotches = Clamp(wheelNotches, -1f, 1f);
+            if (Math.Abs(wheelNotches) < 0.0001f)
+                return;
+
+            float newZoom = _zoom + wheelNotches * WheelZoomStep;
+            newZoom = Math.Max(MinZoom, Math.Min(MaxZoom, newZoom));
 
             if (Math.Abs(newZoom - oldZoom) < 0.0001f)
                 return;

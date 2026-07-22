@@ -20,6 +20,7 @@ namespace LabelPlus
         ToolStripButton plusBtn;
         ToolStripButton minusBtn;
         ToolStripComboBox combox;
+        bool updatingZoomDisplay;
 
         public ZoomAdaptor(PicView picView, 
             ToolStripButton plusBtn,
@@ -58,17 +59,31 @@ namespace LabelPlus
         } 
 
         internal void renew() {
-            combox.Text = picView.Zoom.ToString("#%");
+            // Setting Text can raise SelectedIndexChanged.  That event must not parse the
+            // display value and write it back to PicView, otherwise a wheel zoom can be
+            // rounded and applied a second time.
+            updatingZoomDisplay = true;
+            try
+            {
+                combox.Text = picView.Zoom.ToString("0.#%");
+            }
+            finally
+            {
+                updatingZoomDisplay = false;
+            }
         }
 
         private void comboxTextUpdate(object sender, EventArgs e)
         {
+            if (updatingZoomDisplay)
+                return;
+
             try
             {
                 string str = combox.Text;
                 if(str[str.Length - 1] == '%')
                     str = str.Substring(0, str.Length - 1);
-                picView.Zoom = Convert.ToInt16(str) / 100f;
+                picView.Zoom = Convert.ToSingle(str) / 100f;
                 picView.Focus();
             }
             catch {
