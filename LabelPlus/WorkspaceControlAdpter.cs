@@ -428,8 +428,7 @@ namespace LabelPlus
                 page_right();
                 e.SuppressKeyPress = true;
             }
-
-            if (ShortcutManager.Matches(ShortcutManager.QuickText, e))
+            else if (ShortcutManager.Matches(ShortcutManager.QuickText, e))
             {
                 var filter = new ContextMenuOutsideClickFilter(menuquicktext);
                 Application.AddMessageFilter(filter);
@@ -438,6 +437,18 @@ namespace LabelPlus
                     textbox,
                     GetQuickTextMenuLocation(),
                     ToolStripDropDownDirection.BelowRight);
+                e.SuppressKeyPress = true;
+            }
+            else if (ShortcutManager.Matches(ShortcutManager.CopyToNext, e))
+            {
+                var copyContent = textbox.Text;
+                listviewapt.SelectedIndex++;
+                if (wsp.setVisualWhenIndexChanged)
+                {
+                    picview.SetLabelVisual(listviewapt.SelectedIndex);
+                }
+                
+                textbox.Text = copyContent;
                 e.SuppressKeyPress = true;
             }
         }
@@ -577,7 +588,7 @@ namespace LabelPlus
             if (quickTextTarget != textbox && !textbox.Focused)
                 return;
 
-            textbox.AppendText(text);
+            textbox.SelectedText = text;
         }
 
         private void quickTextClosed(object sender, ToolStripDropDownClosedEventArgs e)

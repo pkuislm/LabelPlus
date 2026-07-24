@@ -29,6 +29,7 @@ namespace LabelPlus
         public static float FontSize;
         public static int FontStyle;
         public static bool SetVisualWhenIndexChanged;
+        public static bool CaptureTabKey;
 
         public static void Reload() {
  
