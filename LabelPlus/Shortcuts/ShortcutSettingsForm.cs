@@ -69,13 +69,19 @@ namespace LabelPlus
             SetStatus(message, false);
         }
 
+        void shortcutTextBox_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        {
+            if (e.KeyCode == Keys.Tab)
+                e.IsInputKey = true;
+        }
+
         void applyButton_Click(object sender, EventArgs e)
         {
             if (SelectedId == null)
                 return;
 
             string message = ShortcutManager.ValidateShortcut(SelectedId, pendingShortcut);
-            if (message != "")
+            if (!ShortcutManager.IsStatusOk(message))
             {
                 SetStatus(message, false);
                 return;
@@ -86,8 +92,9 @@ namespace LabelPlus
                 return;
 
             definition.Keys = pendingShortcut;
+            ShortcutManager.RefreshCaptureTabKey();
             grid.CurrentRow.Cells["Shortcut"].Value = ShortcutManager.Format(definition.Keys);
-            SetStatus("已应用。", true);
+            SetStatus("已应用。" + message, true);
         }
 
         void clearButton_Click(object sender, EventArgs e)
@@ -100,6 +107,7 @@ namespace LabelPlus
                 return;
 
             definition.Keys = Keys.None;
+            ShortcutManager.RefreshCaptureTabKey();
             pendingShortcut = Keys.None;
             shortcutTextBox.Text = "";
             grid.CurrentRow.Cells["Shortcut"].Value = "";
@@ -132,6 +140,7 @@ namespace LabelPlus
                 if (originalShortcuts.TryGetValue(definition.Id, out original))
                     definition.Keys = original;
             }
+            ShortcutManager.RefreshCaptureTabKey();
         }
 
         void SetStatus(string text, bool success)

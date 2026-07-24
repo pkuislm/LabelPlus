@@ -45,10 +45,21 @@ namespace LabelPlus
         public const string LabelPrevious = "nav.labelPrevious";
         public const string LabelNext = "nav.labelNext";
         public const string QuickText = "edit.quickText";
+        public const string CopyToNext = "edit.copyToNext";
         public const string UndoLabel = "edit.undoLabel";
         public const string RedoLabel = "edit.redoLabel";
         public const string DeleteSelectedLabels = "edit.deleteSelectedLabels";
         public const string HideLabels = "view.hideLabels";
+
+        public enum ShortcutStatus
+        {
+            DEFAULT,
+            OK,
+            CONTAINS_TAB,
+            NEEDS_NORMAL_KEY,
+            NEEDS_MODIFIER,
+            SHORTCUT_CONFLICT,
+        }
 
         static readonly List<ShortcutDefinition> definitions = new List<ShortcutDefinition>
         {
@@ -70,6 +81,7 @@ namespace LabelPlus
             new ShortcutDefinition(LabelPrevious, "上一条标签", "导航", Keys.Control | Keys.Up),
             new ShortcutDefinition(LabelNext, "下一条标签", "导航", Keys.Control | Keys.Enter),
             new ShortcutDefinition(QuickText, "快捷短语", "编辑", Keys.Alt | Keys.A),
+            new ShortcutDefinition(CopyToNext, "快速复制到下一标签", "编辑", Keys.Control | Keys.L),
             new ShortcutDefinition(UndoLabel, "撤销标签操作", "编辑", Keys.Control | Keys.Z),
             new ShortcutDefinition(RedoLabel, "重做标签操作", "编辑", Keys.Control | Keys.Y),
             new ShortcutDefinition(DeleteSelectedLabels, "删除选中标签", "编辑", Keys.Control | Keys.Delete),
@@ -127,45 +139,52 @@ namespace LabelPlus
             return shortcut != Keys.None && shortcut == Normalize(keyCode, modifiers);
         }
 
+        public static void RefreshCaptureTabKey()
+        {
+            GlobalVar.CaptureTabKey = definitions.Any(d => d.Keys == Keys.Tab);
+        }
+
         public static Keys Normalize(Keys keyCode, Keys modifiers)
         {
             return (keyCode & Keys.KeyCode) | (modifiers & Keys.Modifiers);
         }
 
-        public static bool HasRequiredModifier(Keys shortcut)
+        public static bool HasRequiredModifier(Keys keyCode, Keys modifiers)
         {
-            Keys modifiers = shortcut & Keys.Modifiers;
-            return (modifiers & (Keys.Control | Keys.Alt | Keys.Shift)) != 0;
+            return (keyCode == Keys.Tab && modifiers == Keys.None) || 
+                (modifiers & (Keys.Control | Keys.Alt | Keys.Shift)) != 0;
         }
 
         public static string ValidateShortcut(string id, Keys shortcut)
         {
             if (shortcut == Keys.None)
-                return "";
+                return StatusToText(ShortcutStatus.OK);
 
             Keys keyCode = shortcut & Keys.KeyCode;
+            Keys modifiers = shortcut & Keys.Modifiers;
             if (keyCode == Keys.None ||
                 keyCode == Keys.ControlKey ||
                 keyCode == Keys.ShiftKey ||
                 keyCode == Keys.Menu)
             {
-                return "快捷键需要包含一个普通按键。";
+                return StatusToText(ShortcutStatus.NEEDS_NORMAL_KEY);
             }
 
-            if (!HasRequiredModifier(shortcut))
-                return "快捷键必须搭配 Ctrl、Alt 或 Shift。";
+            if (!HasRequiredModifier(keyCode, modifiers))
+                return StatusToText(ShortcutStatus.NEEDS_MODIFIER);
 
             var conflict = definitions.FirstOrDefault(d => d.Id != id && d.Keys == shortcut);
             if (conflict != null)
-                return "与“" + conflict.Name + "”冲突。";
+                return StatusToText(ShortcutStatus.SHORTCUT_CONFLICT) + conflict.Name;
 
-            return "";
+            return keyCode == Keys.Tab ? StatusToText(ShortcutStatus.CONTAINS_TAB) : StatusToText(ShortcutStatus.OK);
         }
 
         public static void ResetToDefaults()
         {
             foreach (var definition in definitions)
                 definition.Keys = definition.DefaultKeys;
+            RefreshCaptureTabKey();
         }
 
         public static void Load(XmlDocument doc)
@@ -173,24 +192,26 @@ namespace LabelPlus
             ResetToDefaults();
 
             XmlNodeList nodes = doc.SelectNodes("AppConfig/Shortcuts/Shortcut");
-            if (nodes == null)
-                return;
-
-            foreach (XmlNode node in nodes)
+            if (nodes != null)
             {
-                var idAttr = node.Attributes == null ? null : node.Attributes["id"];
-                var keysAttr = node.Attributes == null ? null : node.Attributes["keys"];
-                if (idAttr == null || keysAttr == null)
-                    continue;
+                foreach (XmlNode node in nodes)
+                {
+                    var idAttr = node.Attributes == null ? null : node.Attributes["id"];
+                    var keysAttr = node.Attributes == null ? null : node.Attributes["keys"];
+                    if (idAttr == null || keysAttr == null)
+                        continue;
 
-                var definition = Get(idAttr.Value);
-                if (definition == null)
-                    continue;
+                    var definition = Get(idAttr.Value);
+                    if (definition == null)
+                        continue;
 
-                Keys parsed;
-                if (TryParse(keysAttr.Value, out parsed) && ValidateShortcut(definition.Id, parsed) == "")
-                    definition.Keys = parsed;
+                    Keys parsed;
+                    if (TryParse(keysAttr.Value, out parsed) && IsStatusOk(ValidateShortcut(definition.Id, parsed)))
+                        definition.Keys = parsed;
+                }
             }
+
+            RefreshCaptureTabKey();
         }
 
         public static void Save(XmlDocument doc)
@@ -269,6 +290,11 @@ namespace LabelPlus
             return string.Join("+", parts.ToArray());
         }
 
+        public static bool IsStatusOk(string status)
+        {
+            return status == StatusToText(ShortcutStatus.OK) || status == StatusToText(ShortcutStatus.CONTAINS_TAB);
+        }
+
         static string KeyCodeToText(Keys keyCode)
         {
             switch (keyCode)
@@ -283,6 +309,25 @@ namespace LabelPlus
                     return "OemPeriod";
                 default:
                     return keyCode.ToString();
+            }
+        }
+
+        static string StatusToText(ShortcutStatus status)
+        {
+            switch (status)
+            {
+                case ShortcutStatus.OK:
+                    return "";
+                case ShortcutStatus.NEEDS_NORMAL_KEY:
+                    return "快捷键必须搭配 Ctrl、Alt 或 Shift。";
+                case ShortcutStatus.NEEDS_MODIFIER:
+                    return "快捷键必须搭配 Ctrl、Alt 或 Shift。";
+                case ShortcutStatus.SHORTCUT_CONFLICT:
+                    return "与以下快捷键冲突：";
+                case ShortcutStatus.CONTAINS_TAB:
+                    return "快捷键包含Tab，可能会使按键本身输入无效。";
+                default:
+                    return "快捷键设置无效。" + status;
             }
         }
     }
