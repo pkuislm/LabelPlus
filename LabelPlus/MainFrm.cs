@@ -562,6 +562,17 @@ namespace LabelPlus
                 return;
         }
 
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (GlobalVar.CaptureTabKey && keyData == Keys.Tab)
+            {
+                TryRunShortcut(new KeyEventArgs(keyData));
+                return true;
+            }
+
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
         private bool TryRunShortcut(KeyEventArgs e)
         {
             if (ShortcutManager.Matches(ShortcutManager.NewFile, e))

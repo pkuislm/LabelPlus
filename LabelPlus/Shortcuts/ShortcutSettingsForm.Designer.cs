@@ -66,6 +66,7 @@
             // 
             this.shortcutTextBox.ReadOnly = true;
             this.shortcutTextBox.Width = 180;
+            this.shortcutTextBox.PreviewKeyDown += shortcutTextBox_PreviewKeyDown;
             this.shortcutTextBox.KeyDown += shortcutTextBox_KeyDown;
             // 
             // applyButton
